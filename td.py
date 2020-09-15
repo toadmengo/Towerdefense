@@ -67,8 +67,9 @@ class object():
     def changey(self, newy): ##Change the y cord
         self.y=newy
 
-    def draw(self, screen):
+    def draw(self):
         screen.blit(self.surf, (self.x,self.y))
+    def drawhitbox(self, screen):
         self.hitbox=(round25(self.x), round25(self.y),self.width,self.height)
         pygame.draw.rect(screen, (255,0,0),self.hitbox, 2)
    
@@ -123,10 +124,11 @@ def drawscreen():   ##Drawscreen draws the object to the screen
 
     if number_of_objects>=1:
         if placing_tile:
-            thinglist[number_of_objects-1].moveobject() ##This line ensures that only the most recent object is allowed to move
+            thinglist[number_of_objects-1].moveobject()
+            thinglist[number_of_objects-1].drawhitbox(screen) ##This line ensures that only the most recent object is allowed to move
         for i in range(number_of_objects-1):
-            thinglist[i].draw(screen) ##Draws all objects that have been created
-        thinglist[number_of_objects-1].draw(screen)
+            thinglist[i].draw() ##Draws all objects that have been created
+        thinglist[number_of_objects-1].draw()
 
     pygame.display.update()
 
@@ -135,7 +137,7 @@ running=True
 while running:
     
     if number_of_objects>=2:
-        if thinglist[number_of_objects-1].collisioncheck():
+        if thinglist[number_of_objects-1].collisioncheck() and placing_tile == True:
             collision= True
         else:
             collision= False
@@ -149,13 +151,13 @@ while running:
                 gridon = not gridon
             
             if not fighting:
-                if event.key== pygame.K_SPACE:
+                if event.key== pygame.K_SPACE and collision == False:
                     placing_tile=not placing_tile
+
                     if placing_tile:
                         number_of_objects+=1
-                    if not placing_tile and collision== False:
 
-                        ##This if statement ensures that xposition is not recorded upon first space (which summons the tile)
+                    if not placing_tile:
                         ###Saves object onto nearest grid location
                         thinglist[number_of_objects-1].changex(round25(thinglist[number_of_objects-1].x))
                         thinglist[number_of_objects-1].changey(round25(thinglist[number_of_objects-1].y))
