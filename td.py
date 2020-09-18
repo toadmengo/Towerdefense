@@ -7,7 +7,7 @@ screen= pygame.display.set_mode((1000,1000))
 
 x=475
 y=475
-vel=.4   
+vel=.5  
   
 screen.fill((130,125,120))
 number_of_objects=0
@@ -128,7 +128,7 @@ class object():
         self.up=False
         self.down=False
         if centerdistance<=self.range:
-            zombielist[i].shot=True
+            zombielist[i].shot+=1
             if zombielist[i].hp>0:
                 zombielist[i].hp-=self.dmg/1000
             if fighting:
@@ -139,8 +139,6 @@ class object():
                 if zombielist[i].y>self.y+self.range*.5:
                     self.down=True
         
-        
-  
 
 ###Classes
 class castle(object):
@@ -189,7 +187,7 @@ class zombie(object):
         self.spawnlocatedistance=475-x
         self.delay=delay
         super().__init__(ID, x, y, vel)
-        self.shot=False
+        self.shot=0
         self.shotcount=random.choice(range(0,99))
             
     def zombiemove(self):
@@ -210,40 +208,68 @@ class zombie(object):
             if movement:
                 xvec=self.spawnlocatedistance/sqrt((self.spawnlocatedistance**2)+(475**2))
                 yvec= 475/sqrt((self.spawnlocatedistance**2)+(475**2))
-                self.x+=.12*xvec
-                self.y+=.12*yvec
+                self.x+=.2*xvec* self.vel
+                self.y+=.2*yvec* self.vel
     
     def zombieanimate(self):
-        self.shotcount+=1
+        self.shotcount+=self.shot
         if self.shotcount+1>=100:
             self.shotcount=0
-        if self.shot:
+        if self.shot>0:
             self.img= self.imglist[self.shotcount//20]
         else: 
             self.img=self.imglist[0]
 
 
+class button():
+    def __init__(self):
+        self.width=40
+        self.height=40
+        
 
-###Prepared objects#####
-########Thing list, describes the order of the created objects
+        
+    def draw(self):
+        self.img=pygame.transform.scale(self.img, (self.width,self.height))
+        pygame.draw.rect(screen, (255,0,0),self.rect, 2)
+        screen.blit(self.img, (self.x,self.y))
+        
+    
+    def clickedon(self, pos):
+        soldier=self.soldier
+        if self.rect.collidepoint(pos):
+            thinglist.append(soldier)
+            return True
+        else:
+            return False
+
+class button1(button, soldier):
+    def __init__(self):
+        button.__init__(self)
+        self.x=20
+        self.y=820
+        self.soldier=soldier(number_of_objects, x, y, vel)
+        self.img=self.soldier.img
+        self.rect=pygame.Rect(self.x,self.y,self.width, self.height)
+
+
 
 thinglist=[]
 thinglist.append(castle(-1, x, y, vel))
-for i in range(8):
-    thinglist.append(soldier(-1, x, y, vel))
-
-
 
 def drawscreen():   ##Drawscreen draws the object to the screen
     screen.fill((130,125,120)) ##Screen color
-
-    ###Create grid lines
-    if gridon and not fighting:
-        for i in range(0,1000, 25):
-            pygame.draw.line(screen, (0,0,0), [i,0], [i,1000], 1)
-            pygame.draw.line(screen, (0,0,0), [0,i], [1000,i], 1)
-
     if number_of_objects>=1:
+    ###Create grid lines
+        if gridon and not fighting:
+            for i in range(0,1000, 25):
+                pygame.draw.line(screen, (0,0,0), [i,0], [i,800], 1)
+            for i in range(0,800, 25):   
+                pygame.draw.line(screen, (0,0,0), [0,i], [1000,i], 1)
+
+    ###Create a sidebar
+        pygame.draw.rect(screen, (255,255,255), (0,800,1000,200), 0)
+        b1.draw()
+        
         if placing_tile and not fighting:
             thinglist[number_of_objects-1].moveobject() ##This line ensures that only the most recent object is allowed to move
             if number_of_objects>=2:
@@ -265,17 +291,14 @@ def drawscreen():   ##Drawscreen draws the object to the screen
                 zombielist[i].draw()
                 zombielist[i].zombieanimate()
                 zombielist[i].drawhpbox()
-                zombielist[i].shot=False
-
-                
-
+                zombielist[i].shot=0
                 
     pygame.display.update()
 
 
 running=True
 while running:
-    
+
     if number_of_objects>=2:
         if thinglist[number_of_objects-1].collisioncheck() and placing_tile == True:
             collision= True
@@ -285,41 +308,46 @@ while running:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running= False
-        if event.type == pygame.KEYDOWN:
 
-            if event.key==pygame.K_g: ###press g to turn on grid overlay
-                gridon = not gridon
-            
-            if not fighting:
-                if event.key== pygame.K_SPACE and collision == False:
-                    if not placing_tile:
-                        if not fighting:
+        if event.type == pygame.KEYDOWN and event.key==pygame.K_g: ###press g to turn on grid overlay
+            gridon = not gridon
+        
+        if not fighting:
+            if not placing_tile:
+                if event.type== pygame.MOUSEBUTTONUP and number_of_objects>=1:   
+                    pos=pygame.mouse.get_pos()
+                    if b1.clickedon(pos):
+                        number_of_objects+=1
+                        b1=button1()
+                        placing_tile=not placing_tile
+                if event.type == pygame.KEYDOWN:
+                    if event.key==pygame.K_SPACE:
+                        if number_of_objects==0:
+                            number_of_objects+=1
+                            placing_tile=not placing_tile
+                            b1=button1()
                             ###spawn zombie mechanism
-                            if number_of_objects==5 and phase==0:
-                                
-                                #####Zombie creation list
-                                zombielist=[]
-                                zombiecount=15
-                                globaldelay=0 ###Sets a delay count that staggers the spawn of zombies
-                                for i in range(zombiecount):
-                                    z= random.choice(range(0,950))
-                                    delay= random.choice(range(1,4000))
-                                    zombielist.append(zombie(i, z, 0, vel, delay))
-                                fighting=True
-                                
-                            else:    
-                                number_of_objects+=1
-                                placing_tile=not placing_tile
-              
-                    else:
-                        ###Saves object onto nearest grid location
-                        thinglist[number_of_objects-1].changex(round25(thinglist[number_of_objects-1].x))
-                        thinglist[number_of_objects-1].changey(round25(thinglist[number_of_objects-1].y))
-                        xpos.append(thinglist[number_of_objects-1].x)
-                        ypos.append(thinglist[number_of_objects-1].y)
-                        objectwidth.append(thinglist[number_of_objects-1].width)
-                        objectheight.append(thinglist[number_of_objects-1].height)
-                        placing_tile=not placing_tile  
+                        if number_of_objects==5 and phase==0:
+                            #####Zombie creation list
+                            zombielist=[]
+                            zombiecount=15 
+                            globaldelay=0 ###Sets a delay count that staggers the spawn of zombies
+                            for i in range(zombiecount):
+                                z= random.choice(range(0,950))
+                                delay= random.choice(range(1,4000))
+                                zombielist.append(zombie(i, z, 0, vel, delay))
+                            fighting=True
+       
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_SPACE and not collision:
+                    ###Saves object onto nearest grid location
+                    thinglist[number_of_objects-1].changex(round25(thinglist[number_of_objects-1].x))
+                    thinglist[number_of_objects-1].changey(round25(thinglist[number_of_objects-1].y))
+                    xpos.append(thinglist[number_of_objects-1].x)
+                    ypos.append(thinglist[number_of_objects-1].y)
+                    objectwidth.append(thinglist[number_of_objects-1].width)
+                    objectheight.append(thinglist[number_of_objects-1].height)
+                    placing_tile=not placing_tile  
 
     if fighting:
 

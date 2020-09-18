@@ -1,0 +1,1 @@
+(event.type== pygame.MOUSEBUTTONUP and not placing_tile and number_of_objects>=1) or (number_of_objects==0 and event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE):
