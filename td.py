@@ -12,12 +12,12 @@ myfont2= pygame.font.SysFont('Comic Sans MS', 16)
 
 x=475
 y=475
-vel=.5  
   
 screenwidth=1000
 screenheight=800
 screen.fill((130,125,120))
 number_of_objects=0
+number_of_buttons=0
 
 collision= False
 xpos=[0]
@@ -30,7 +30,7 @@ gridon = False
 phase=0 ###phase tells the game what round it's on
 fighting=False
 
-gold=4
+gold=3
 
 
 placing_tile=False
@@ -38,6 +38,12 @@ placing_tile=False
 shotcount=0
 
 gamestart=False
+
+clock=pygame.time.Clock() ###Measure framerate
+fastspeed=10
+normalspeed=6
+globalspeed= normalspeed ###(adjusts for speed, does not currently function because only affects initialization)
+vel=.5*globalspeed
 
 def round25(x):
     rounded=round(x/25)
@@ -62,7 +68,7 @@ class object():
         if pressed_keys[pygame.K_LSHIFT] or pressed_keys[pygame.K_RSHIFT]: ##Move faster when left shifting!
             if (pressed_keys[pygame.K_LEFT] or pressed_keys[pygame.K_a]) and self.x>self.vel*2.5:
                 self.x-=self.vel*2.5
-            if (pressed_keys[pygame.K_RIGHT] or pressed_keys[pygame.K_d])and self.x<1000-screenwidth-self.vel*2.5:
+            if (pressed_keys[pygame.K_RIGHT] or pressed_keys[pygame.K_d])and self.x<screenwidth-self.vel*2.5:
                 self.x+=self.vel*2.5
             if (pressed_keys[pygame.K_UP] or pressed_keys[pygame.K_w])and self.y>self.vel*2.5:
                 self.y-=self.vel*2.5
@@ -78,7 +84,7 @@ class object():
                 self.y-=self.vel
             if (pressed_keys[pygame.K_DOWN] or pressed_keys[pygame.K_s]) and self.y<screenheight-self.height-self.vel:
                 self.y+=self.vel
-            self.center= [round(self.x+self.width/2), round(self.y+self.height/2)]
+        self.center= [round(self.x+self.width/2), round(self.y+self.height/2)]
 
 
     def changex(self, newx): ##Change the x cord
@@ -113,8 +119,8 @@ class object():
             maxhp=self.maxhp
         else:
             maxhp=40
-        hpoutline= (self.center[0]-self.hp, self.y-15, maxhp*2, round(maxhp/3)+5)
-        hpbox= (self.center[0]-self.hp, self.y-15, maxhp*2*self.hp/self.maxhp, round(maxhp/3)+5)
+        hpoutline= (self.center[0]-maxhp-6, self.y-15, maxhp*2+12, round(maxhp/4)+10)
+        hpbox= (self.center[0]-maxhp-6, self.y-15, (maxhp*2+12)*(self.hp/self.maxhp), round(maxhp/4)+10)
         if self.good:
             pygame.draw.rect(screen, (0,150,0), hpbox , 0)
         else:
@@ -125,31 +131,34 @@ class object():
         self.hitbox=(round25(self.x), round25(self.y),self.width,self.height)
         pygame.draw.rect(screen, (255,0,0),self.hitbox, 2)
     def drawrange(self, screen):
-        pygame.draw.circle(screen, (255,0,0), self.center, self.range, 2)
+        if self.range>0:
+            pygame.draw.circle(screen, (255,0,0), self.center, self.range, 2)
 
     def collisioncheck(self):
-        for a in range(len(xpos)):
-            if round25(self.x)-xpos[a]<objectwidth[a] and xpos[a]-round25(self.x)<self.width and round25(self.y)-ypos[a]<objectheight[a] and ypos[a]-round25(self.y)<self.height:
-                return True
+        colliding=False
+        for i in range(len(thinglist)-1):
+            if round25(self.x)-thinglist[i].x<thinglist[i].width and thinglist[i].x-round25(self.x)<self.width and round25(self.y)-thinglist[i].y<thinglist[i] .height and thinglist[i].y-round25(self.y)<self.height:
+                colliding=True
+        return colliding
         
-    def zombiehealthupdate(self): ### some redundancy here
+    def zombiedisttrack(self): ### some redundancy here
         distlist=[]
         for i in range(zombiecount):
             a= (self.center[0]-zombielist[i].center[0])**2 + (self.center[1]-zombielist[i].center[1])**2
             centerdistance=sqrt(a)
             distlist.append(centerdistance)
         centerdistance=min(distlist)
-        i=[]
-        i.append(distlist.index(centerdistance))
-        i=i[0]
+        closest=[]
+        closest.append(distlist.index(centerdistance))
+        i=closest[0]
         xdif=self.center[0]-zombielist[i].center[0]
         self.right=True
         self.up=False
         self.down=False
         if centerdistance<=self.range:
-            zombielist[i].shot+=1
-            if zombielist[i].hp>0:
-                zombielist[i].hp-=self.dmg/1000
+            zombielist[i].shot+=self.firerate
+            zombielist[i].number_of_shooters+=1
+            zombielist[i].shooters.append(self)
             if fighting:
                 if xdif>=0:
                     self.right=False
@@ -167,8 +176,8 @@ class castle(object):
         self.img=pygame.image.load(r'image/fortress.png')
         self.range=0
         ###needs range function
-        self.hp=40
-        self.maxhp=self.hp
+        self.maxhp=40
+        self.hp=self.maxhp
         super().__init__(ID, x, y, vel)
         self.right=True
         self.up=False
@@ -181,11 +190,13 @@ class soldier(object):
         self.width=50
         self.height=50
         self.img=pygame.image.load(r'image/soldierR.png')
-        self.range=150
+        self.range=200
         ###needs range function
-        self.hp=25
-        self.maxhp=self.hp
-        self.dmg=3
+        self.maxhp=25
+        self.hp=self.maxhp
+        self.dmgdisp=2
+        self.dmg=self.dmgdisp
+        self.firerate=5
         super().__init__(ID, x, y, vel)
         self.imglist=[pygame.image.load(r'image/soldierR.png'), pygame.image.load(r'image/soldierTR.png'),pygame.image.load(r'image/soldierTL.png'), pygame.image.load(r'image/soldierL.png'), pygame.image.load(r'image/soldierBL.png'), pygame.image.load(r'image/soldierBR.png')]
         self.right=True
@@ -195,24 +206,51 @@ class soldier(object):
         self.good=True
         self.description=''
 
+class wall(object):
+    def __init__(self, ID, x, y, vel):
+        self.width=50
+        self.height=50
+        self.img=pygame.image.load(r'image/barbed-wire.png')
+        self.imglist=[]
+        for i in range(6):
+            self.imglist.append(pygame.image.load(r'image/barbed-wire.png'))
+        self.range=0
+        ###needs range function
+        self.maxhp=80
+        self.hp=self.maxhp
+        self.dmgdisp=0
+        self.dmg=self.dmgdisp
+        self.firerate=0
+        super().__init__(ID, x, y, vel)
+        self.right=True
+        self.up=False
+        self.down=False
+        self.cost=2
+        self.good=True
+        self.description='Great for tanking zombies'
+
 
 class zombie(object):
     def __init__(self, ID, x, y, vel, delay):
         self.width=50
         self.height=50
         self.img=pygame.image.load(r'image/zombie.png')
-        self.imglist=[pygame.transform.scale(pygame.image.load(r'image/zombie.png'), (self.width,self.height)),pygame.transform.scale(pygame.image.load(r'image/zombie.png'), (self.width,self.height)),pygame.transform.scale(pygame.image.load(r'image/zombie.png'), (self.width,self.height)),pygame.transform.scale(pygame.image.load(r'image/zombieshot.png'), (self.width,self.height)),pygame.transform.scale(pygame.image.load(r'image/zombieshot.png'), (self.width,self.height)),pygame.transform.scale(pygame.image.load(r'image/zombieshot.png'), (self.width,self.height))]
+        self.imglist=[pygame.transform.scale(pygame.image.load(r'image/zombie.png'), (self.width,self.height)), pygame.transform.scale(pygame.image.load(r'image/zombieshot.png'), (self.width,self.height))]
         self.range=75
         ###needs range function
-        self.hp=10
-        self.maxhp=self.hp
-        self.dmg=2
+        self.maxhp=12
+        self.hp=self.maxhp
+        self.dmgdisp=4
+        self.dmg=self.dmgdisp*globalspeed
         super().__init__(ID, x, y, vel)
         self.spawnlocatedistance=(thinglist[0].center[0]-(self.width/2))-self.x
         self.delay=delay
         self.shot=0
         self.shotcount=random.choice(range(0,99))
         self.good=False
+        self.gotshot=0
+        self.number_of_shooters=0
+        self.shooters=[]
             
     def zombiemove(self):
         self.center= [round(self.x+self.width/2), round(self.y+self.height/2)]
@@ -232,16 +270,28 @@ class zombie(object):
             if movement:
                 xvec=self.spawnlocatedistance/sqrt((self.spawnlocatedistance**2)+((thinglist[0].center[1]-(self.height/2))**2))
                 yvec= 475/sqrt((self.spawnlocatedistance**2)+(475**2))
-                self.x+=.2*xvec* self.vel
-                self.y+=.2*yvec* self.vel
+                self.x+=.4*xvec* self.vel
+                self.y+=.4*yvec* self.vel
     
-    def zombieanimate(self):
+    def zombieshottrack(self):
         self.shotcount+=self.shot
-        if self.shotcount+1>=100:
+        if self.shotcount+1>=200: ##Rate of zombie getting hit
             self.shotcount=0
-        if self.shot>0:
-            self.img= self.imglist[self.shotcount//20]
+            if self.shot>0:
+                self.gotshot=True
         else: 
+            self.gotshot=False
+
+    def zombiehealth(self):
+        if i.shooting==True and self.number_of_shooters>0:
+            self.img= self.imglist[1]
+            dmgtotal=0
+            for i in self.shooters:
+                dmgtotal+=i.dmg
+            dmgtotal=dmgtotal/self.number_of_shooters
+            self.hp-=dmgtotal
+            print(self.hp)
+        else:
             self.img=self.imglist[0]
 
 def zombiedead(i):
@@ -262,7 +312,7 @@ class button():
         self.img=pygame.transform.scale(self.img, (self.width,self.height))
         pygame.draw.rect(screen, (0,0,0),self.rect, 2)
         screen.blit(self.img, (self.x,self.y))
-        self.textsurface= myfont2.render(f'Cost: {self.cost}', False, (0, 0, 0))
+        self.textsurface= myfont2.render(f'Cost: {self.soldier.cost}', False, (0, 0, 0))
         screen.blit(self.textsurface, (self.x,self.y+self.height+10))
           
     def clickedon(self, pos):
@@ -284,12 +334,14 @@ class button():
             return True
     
     def showinfo(self):
-        text1=myfont.render(f'DMG: {self.dmg}', False, (0, 0, 0))
-        text2=myfont.render(f'HP: {self.hp}', False, (0, 0, 0))
-        text3=myfont.render(f'{self.description}', False, (0, 0, 0))
-        screen.blit(text1, (self.x,self.y-150))
-        screen.blit(text2, (self.x,self.y-100))
-        screen.blit(text3, (self.x,self.y-50))
+        text1=myfont.render(f'DMG: {self.soldier.dmgdisp}', False, (0, 0, 0))
+        text2=myfont.render(f'ATKSPD: {self.soldier.firerate}', False, (0, 0, 0))
+        text3=myfont.render(f'HP: {self.soldier.hp}', False, (0, 0, 0))
+        text4=myfont.render(f'{self.soldier.description}', False, (0, 0, 0))
+        screen.blit(text1, (20,self.y-250))
+        screen.blit(text2, (20,self.y-200))
+        screen.blit(text3, (20,self.y-150))
+        screen.blit(text4, (20,self.y-80))
 
     def drawfuncbutton(self):
         pygame.draw.rect(screen, self.color,self.rect, 2)
@@ -327,7 +379,7 @@ class deletebutton(button):
         self.rect=pygame.Rect(self.x,self.y,self.width, self.height)
         self.func= 'Delete'
 
-class button1(button, soldier):
+class button1(button):
     def __init__(self):
         button.__init__(self)
         self.x=20
@@ -336,10 +388,19 @@ class button1(button, soldier):
         self.img=self.soldier.img
         self.info=False
         self.rect=pygame.Rect(self.x,self.y,self.width, self.height)
-        self.cost=self.soldier.cost
-        self.hp=self.soldier.hp
-        self.dmg=self.soldier.dmg
-        self.description=self.soldier.description
+
+
+class button2(button):
+    def __init__(self):
+        button.__init__(self)
+        self.x=80
+        self.y=820
+        self.soldier=wall(number_of_objects, x, y, vel)
+        self.img=self.soldier.img
+        self.info=False
+        self.rect=pygame.Rect(self.x,self.y,self.width, self.height)
+
+
 
 thinglist=[]
 thinglist.append(castle(-1, x, y, vel))
@@ -356,9 +417,10 @@ def drawscreen():   ##Drawscreen draws the object to the screen
 
     ###Create a sidebar
         pygame.draw.rect(screen, (255,255,255), (0,screenheight,screenwidth,200), 0)
-        b1.draw() #Button
-        if b1.info==True:
-            b1.showinfo()
+        for i in buttonlist:
+            i.draw() #Button
+            if i.info==True:
+                i.showinfo()
         textsurface= myfont.render(f'Gold: {gold}', False, (0, 0, 0))
         screen.blit(textsurface,(850, 870)) #show gold
         textsurface= myfont.render(f'Round: {phase}', False, (0, 0, 0))
@@ -374,9 +436,12 @@ def drawscreen():   ##Drawscreen draws the object to the screen
             for i in range(zombiecount):
                 zombielist[i].zombiemove()
                 zombielist[i].draw()
-                zombielist[i].zombieanimate()
+                zombielist[i].zombieshottrack()
                 zombielist[i].drawhpbox()
                 zombielist[i].shot=0
+                zombielist[i].number_of_shooters=0
+                zombielist[i].shooters=[]
+
         
         if placing_tile and not fighting:
             thinglist[number_of_objects-1].moveobject() ##This line ensures that only the most recent object is allowed to move
@@ -385,15 +450,18 @@ def drawscreen():   ##Drawscreen draws the object to the screen
         for i in range(number_of_objects):
             if i!=0:
                 if fighting:
-                    thinglist[i].zombiehealthupdate()
+                    thinglist[i].zombiedisttrack()
                 thinglist[i].drawsoldier() ##Draws all objects that have been created
             if not fighting:
                 thinglist[i].drawhitbox(screen) 
             else:
                 thinglist[i].drawhpbox()
         thinglist[0].draw()
-        
+        if fighting:
+            for i in zombielist:
+                i.zombiehealth()
 
+        clock.tick(40)
                 
     pygame.display.update()
 
@@ -411,13 +479,22 @@ while running:
         if event.type == pygame.QUIT:
             running= False
 
-        if event.type == pygame.KEYDOWN and event.key==pygame.K_g: ###press g to turn on grid overlay
-            gridon = not gridon
+        if event.type == pygame.KEYDOWN:
+            if event.key==pygame.K_g and not fighting: ###press g to turn on grid overlay
+                gridon = not gridon
+
+
+        pressed_keys = pygame.key.get_pressed()
+        if pressed_keys[pygame.K_LSHIFT] or pressed_keys[pygame.K_RSHIFT]: ###NEEDS WORK
+            globalspeed= fastspeed
+        if event.type== pygame.KEYUP:
+            if event.key==pygame.K_LSHIFT or event.key==pygame.K_RSHIFT:
+                globalspeed=normalspeed
         
         if not fighting:
             if event.type == pygame.KEYDOWN:
                 if event.key==pygame.K_SPACE:
-                    if number_of_objects==0:
+                    if number_of_objects==0 and phase==0 and gamestart==False:
                         gamestart=True
                         number_of_objects+=1
                         placing_tile=True
@@ -425,55 +502,61 @@ while running:
                         start=startbutton()
                         place=placebutton()
                         delete=deletebutton()
+                        buttonlist=[]
                         b1=button1()
+                        buttonlist.append(b1)
+                        number_of_buttons+=1
+                        
+
                         
             if event.type== pygame.MOUSEBUTTONUP and gamestart==True:   
                 pos=pygame.mouse.get_pos()
-                b1.info=False
 
                 if start.clickedon(pos) and not placing_tile:             
                 #####Zombie creation listW
                     phase+=1
                     zombielist=[]
-                    print((5*pow(2, phase-1)))
-                    zombiecount=10 + (5*pow(2, phase-1))
+                    a=pow(2, phase-1)
+                    zombiecount=6 + (5*(a))
                     print(zombiecount)
                     
                     globaldelay=0 ###Sets a delay count that staggers the spawn of zombies
                     for i in range(zombiecount):
                         z= random.choice(range(0,950))
-                        delay= random.choice(range(1,4000))
+                        delay= random.choice(range(1,500+4*zombiecount))
                         zombielist.append(zombie(i, z, 0, vel, delay))
                     fighting=True
 
 
                 if delete.clickedon(pos) and placing_tile and number_of_objects>=2:
+                    gold+=thinglist[number_of_objects-1].cost
                     number_of_objects-=1
                     thinglist.pop(number_of_objects)
                     placing_tile= False
-
-
-                if b1.clickedon(pos) and not placing_tile: ###If button clicked on
-                    if event.button == 1: ###Consider creating a list of buttons to simplify this
-                        if b1.spawnthing():
-                            b1=button1() ### reinitilize button
-                            placing_tile=True
-            
-                    if event.button == 2 or event.button==3: ###Needs fixing
-                        b1=button1()
-                        b1.info==True
-                
+                    for i in buttonlist:
+                        i.info=False
+                    
+                for i in range(len(buttonlist)):    
+                    if buttonlist[i].clickedon(pos) and not placing_tile: ###If button clicked on
+                        if event.button == 1: ###Consider creating a list of buttons to simplify this
+                            if buttonlist[i].spawnthing():
+                                if buttonlist[i]==b1:
+                                    b1=button1()
+                                    buttonlist[i]=b1 ### reinitilize button
+                                if phase>=1:
+                                    if buttonlist[i]==b2:
+                                        b2=button2()
+                                        buttonlist[i]=b2    
+                                placing_tile=True
+                                buttonlist[i].info=True   
 
                 if place.clickedon(pos) and not collision and placing_tile:
                     ###Saves object onto nearest grid location
                     thinglist[number_of_objects-1].changex(round25(thinglist[number_of_objects-1].x))
                     thinglist[number_of_objects-1].changey(round25(thinglist[number_of_objects-1].y))
-                    xpos.append(thinglist[number_of_objects-1].x)
-                    ypos.append(thinglist[number_of_objects-1].y)
-                    objectwidth.append(thinglist[number_of_objects-1].width)
-                    objectheight.append(thinglist[number_of_objects-1].height)
                     placing_tile=False
-                    print('clicked place')
+                    for i in buttonlist:
+                        i.info=False
 
     if fighting:
     
@@ -485,20 +568,28 @@ while running:
                 if zombielist[i].hp<=.1:
                     zombiedead(i)
                     dead=True
+
+                    fr=int(clock.get_fps())
+                    #print(fr) ##DELETETHIS
                     break
+
             if len(zombielist)==0:
                 fighting=False
-                phase+=1
                 placing_tile=False
+
+                ###initialize new buttons here
+                if phase ==1:
+                    b2=button2()
+                    number_of_buttons+=1
+                    buttonlist.append(b2)
+
                 break
             for i in range(number_of_objects):
-                thinglist[i].zombiehealthupdate()
                 if thinglist[i].hp<=.1:
-                    del thinglist[i]
-                    del xpos[i]
-                    del ypos[i]
-                    del objectheight[i]
-                    del objectwidth[i]  
+                    if i==0:
+                        running=False
+                        ####Add something if the player loses!
+                    del thinglist[i] 
                     number_of_objects-=1
                     dead= True 
                     break ###If somebody dies, the loop is run again to check for another death before health changes
