@@ -32,6 +32,7 @@ fighting=False
 
 gold=3
 
+shottimerrange=200
 
 placing_tile=False
 
@@ -60,6 +61,13 @@ class object():
         self.img=pygame.transform.scale(self.img, (self.width,self.height))
         self.surf=self.img
         self.hitbox=(self.x, self.y,self.width,self.height) ###delete??
+
+        ###Shooting calculations
+        self.shooting=False
+        self.shottimer=random.choice(range(1, shottimerrange))
+        self.shootingat=-1
+        
+        
         
     def moveobject(self):  
 
@@ -85,6 +93,7 @@ class object():
             if (pressed_keys[pygame.K_DOWN] or pressed_keys[pygame.K_s]) and self.y<screenheight-self.height-self.vel:
                 self.y+=self.vel
         self.center= [round(self.x+self.width/2), round(self.y+self.height/2)]
+
 
 
     def changex(self, newx): ##Change the x cord
@@ -141,7 +150,7 @@ class object():
                 colliding=True
         return colliding
         
-    def zombiedisttrack(self): ### some redundancy here
+    def zombieshottrack(self): ### some redundancy here
         distlist=[]
         for i in range(zombiecount):
             a= (self.center[0]-zombielist[i].center[0])**2 + (self.center[1]-zombielist[i].center[1])**2
@@ -155,18 +164,26 @@ class object():
         self.right=True
         self.up=False
         self.down=False
-        if centerdistance<=self.range:
-            zombielist[i].shot+=self.firerate
-            zombielist[i].number_of_shooters+=1
-            zombielist[i].shooters.append(self)
-            if fighting:
-                if xdif>=0:
-                    self.right=False
-                if zombielist[i].y<self.y-zombielist[i].range*.5:
-                    self.up=True
-                if zombielist[i].y>self.y+self.range*.5:
-                    self.down=True
         
+        self.shooting=False
+
+        if centerdistance<=self.range and fighting: 
+
+            ###Shooting calculations
+            self.shottimer+=self.firerate
+
+            if self.shottimer>=shottimerrange: ##Rate of zombie getting hit
+                self.shooting=True
+                self.shootingat=zombielist[i].ID
+                self.shottimer=0
+
+            ###Positions for soldiers
+            if xdif>=0:
+                self.right=False
+            if zombielist[i].y<self.y-zombielist[i].range*.5:
+                self.up=True
+            if zombielist[i].y>self.y+self.range*.5:
+                self.down=True
 
 ###Classes
 class castle(object):
@@ -240,7 +257,7 @@ class zombie(object):
         ###needs range function
         self.maxhp=12
         self.hp=self.maxhp
-        self.dmgdisp=4
+        self.dmgdisp=5
         self.dmg=self.dmgdisp*globalspeed
         super().__init__(ID, x, y, vel)
         self.spawnlocatedistance=(thinglist[0].center[0]-(self.width/2))-self.x
@@ -248,9 +265,7 @@ class zombie(object):
         self.shot=0
         self.shotcount=random.choice(range(0,99))
         self.good=False
-        self.gotshot=0
-        self.number_of_shooters=0
-        self.shooters=[]
+
             
     def zombiemove(self):
         self.center= [round(self.x+self.width/2), round(self.y+self.height/2)]
@@ -273,26 +288,18 @@ class zombie(object):
                 self.x+=.4*xvec* self.vel
                 self.y+=.4*yvec* self.vel
     
-    def zombieshottrack(self):
-        self.shotcount+=self.shot
-        if self.shotcount+1>=200: ##Rate of zombie getting hit
-            self.shotcount=0
-            if self.shot>0:
-                self.gotshot=True
-        else: 
-            self.gotshot=False
 
     def zombiehealth(self):
-        if i.shooting==True and self.number_of_shooters>0:
-            self.img= self.imglist[1]
-            dmgtotal=0
-            for i in self.shooters:
-                dmgtotal+=i.dmg
-            dmgtotal=dmgtotal/self.number_of_shooters
-            self.hp-=dmgtotal
-            print(self.hp)
-        else:
-            self.img=self.imglist[0]
+        self.gotshot=False
+        for j in thinglist:
+            if j.shooting and j.shootingat==self.ID:
+                self.gotshot=True
+                self.img= self.imglist[1]
+                self.hp-=j.dmg
+                print(f"hp:{self.ID}={self.hp}")
+        if not self.gotshot:
+            self.img= self.imglist[0]
+
 
 def zombiedead(i):
     del zombielist[i]
@@ -384,7 +391,7 @@ class button1(button):
         button.__init__(self)
         self.x=20
         self.y=820
-        self.soldier=soldier(number_of_objects, x, y, vel)
+        self.soldier=soldier(number_of_objects, thinglist[0].x, thinglist[0].y, vel)
         self.img=self.soldier.img
         self.info=False
         self.rect=pygame.Rect(self.x,self.y,self.width, self.height)
@@ -436,11 +443,8 @@ def drawscreen():   ##Drawscreen draws the object to the screen
             for i in range(zombiecount):
                 zombielist[i].zombiemove()
                 zombielist[i].draw()
-                zombielist[i].zombieshottrack()
                 zombielist[i].drawhpbox()
-                zombielist[i].shot=0
-                zombielist[i].number_of_shooters=0
-                zombielist[i].shooters=[]
+
 
         
         if placing_tile and not fighting:
@@ -450,7 +454,7 @@ def drawscreen():   ##Drawscreen draws the object to the screen
         for i in range(number_of_objects):
             if i!=0:
                 if fighting:
-                    thinglist[i].zombiedisttrack()
+                    thinglist[i].zombieshottrack()
                 thinglist[i].drawsoldier() ##Draws all objects that have been created
             if not fighting:
                 thinglist[i].drawhitbox(screen) 
@@ -458,8 +462,8 @@ def drawscreen():   ##Drawscreen draws the object to the screen
                 thinglist[i].drawhpbox()
         thinglist[0].draw()
         if fighting:
-            for i in zombielist:
-                i.zombiehealth()
+            for zombie in zombielist:
+                zombie.zombiehealth()
 
         clock.tick(40)
                 
@@ -503,9 +507,7 @@ while running:
                         place=placebutton()
                         delete=deletebutton()
                         buttonlist=[]
-                        b1=button1()
-                        buttonlist.append(b1)
-                        number_of_buttons+=1
+
                         
 
                         
@@ -518,7 +520,7 @@ while running:
                     zombielist=[]
                     a=pow(2, phase-1)
                     zombiecount=6 + (5*(a))
-                    print(zombiecount)
+                    print(f"zombiecount:{zombiecount}")
                     
                     globaldelay=0 ###Sets a delay count that staggers the spawn of zombies
                     for i in range(zombiecount):
@@ -539,7 +541,7 @@ while running:
                 for i in range(len(buttonlist)):    
                     if buttonlist[i].clickedon(pos) and not placing_tile: ###If button clicked on
                         if event.button == 1: ###Consider creating a list of buttons to simplify this
-                            if buttonlist[i].spawnthing():
+                            if buttonlist[i].spawnthing(): ##Change so button initilializes after first
                                 if buttonlist[i]==b1:
                                     b1=button1()
                                     buttonlist[i]=b1 ### reinitilize button
@@ -555,8 +557,14 @@ while running:
                     thinglist[number_of_objects-1].changex(round25(thinglist[number_of_objects-1].x))
                     thinglist[number_of_objects-1].changey(round25(thinglist[number_of_objects-1].y))
                     placing_tile=False
+                    if phase==0 and number_of_objects==1:
+                        b1=button1()
+                        buttonlist.append(b1)
+                        number_of_buttons+=1
                     for i in buttonlist:
                         i.info=False
+                    
+                    
 
     if fighting:
     
