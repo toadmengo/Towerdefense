@@ -66,6 +66,10 @@ class object():
         self.shooting=False
         self.shottimer=random.choice(range(1, shottimerrange))
         self.shootingat=-1
+
+        self.right=True
+        self.up=False
+        self.down=False
         
         
         
@@ -207,18 +211,13 @@ class soldier(object):
         self.width=50
         self.height=50
         self.img=pygame.image.load(r'image/soldierR.png')
-        self.range=200
-        ###needs range function
+        self.range=175
         self.maxhp=25
         self.hp=self.maxhp
-        self.dmgdisp=2
-        self.dmg=self.dmgdisp
+        self.dmg=2
         self.firerate=5
         super().__init__(ID, x, y, vel)
         self.imglist=[pygame.image.load(r'image/soldierR.png'), pygame.image.load(r'image/soldierTR.png'),pygame.image.load(r'image/soldierTL.png'), pygame.image.load(r'image/soldierL.png'), pygame.image.load(r'image/soldierBL.png'), pygame.image.load(r'image/soldierBR.png')]
-        self.right=True
-        self.up=False
-        self.down=False
         self.cost=1
         self.good=True
         self.description=''
@@ -232,20 +231,30 @@ class wall(object):
         for i in range(6):
             self.imglist.append(pygame.image.load(r'image/barbed-wire.png'))
         self.range=0
-        ###needs range function
         self.maxhp=80
         self.hp=self.maxhp
-        self.dmgdisp=0
-        self.dmg=self.dmgdisp
+        self.dmg=0
         self.firerate=0
         super().__init__(ID, x, y, vel)
-        self.right=True
-        self.up=False
-        self.down=False
         self.cost=2
         self.good=True
         self.description='Great for tanking zombies'
 
+class machinegun(object):
+    def __init__(self, ID, x, y, vel):
+        self.width=75
+        self.height=75
+        self.img=pygame.image.load(r'image/barbed-wire.png')
+        self.imglist=[]
+        self.range=150
+        self.maxhp=5
+        self.hp=self.maxhp
+        self.dmg=1
+        self.firerate=18
+        super().__init__(ID, x, y, vel)
+        self.cost=3
+        self.good=True
+        self.description='High damage, quite vulnerable'
 
 class zombie(object):
     def __init__(self, ID, x, y, vel, delay):
@@ -316,15 +325,19 @@ class button():
         self.height=40
     
     def draw(self):
-        self.img=pygame.transform.scale(self.img, (self.width,self.height))
-        pygame.draw.rect(screen, (0,0,0),self.rect, 2)
-        screen.blit(self.img, (self.x,self.y))
-        self.textsurface= myfont2.render(f'Cost: {self.soldier.cost}', False, (0, 0, 0))
-        screen.blit(self.textsurface, (self.x,self.y+self.height+10))
+        if self.round>=phase:
+            self.img=pygame.transform.scale(self.img, (self.width,self.height))
+            pygame.draw.rect(screen, (0,0,0),self.rect, 2)
+            screen.blit(self.img, (self.x,self.y))
+            self.textsurface= myfont2.render(f'Cost: {self.soldier.cost}', False, (0, 0, 0))
+            screen.blit(self.textsurface, (self.x,self.y+self.height+10))
           
     def clickedon(self, pos):
-        if self.rect.collidepoint(pos):
-            return True
+        if self.round>=phase:
+            if self.rect.collidepoint(pos):
+                return True
+            else:
+                return False
         else:
             return False
 
@@ -341,7 +354,7 @@ class button():
             return True
     
     def showinfo(self):
-        text1=myfont.render(f'DMG: {self.soldier.dmgdisp}', False, (0, 0, 0))
+        text1=myfont.render(f'DMG: {self.soldier.dmg}', False, (0, 0, 0))
         text2=myfont.render(f'ATKSPD: {self.soldier.firerate}', False, (0, 0, 0))
         text3=myfont.render(f'HP: {self.soldier.hp}', False, (0, 0, 0))
         text4=myfont.render(f'{self.soldier.description}', False, (0, 0, 0))
@@ -365,6 +378,7 @@ class startbutton(button):
         self.color=(255,0,0)
         self.rect=pygame.Rect(self.x,self.y,self.width, self.height)
         self.func= 'Start'
+        self.round= 0
 class placebutton(button):
     def __init__(self):
         button.__init__(self)
@@ -375,6 +389,7 @@ class placebutton(button):
         self.color=(0,255,0)
         self.rect=pygame.Rect(self.x,self.y,self.width, self.height)
         self.func= 'Place'
+        self.round= 0
 class deletebutton(button):
     def __init__(self):
         button.__init__(self)
@@ -385,6 +400,7 @@ class deletebutton(button):
         self.color= (255,0,0)
         self.rect=pygame.Rect(self.x,self.y,self.width, self.height)
         self.func= 'Delete'
+        self.round= 0
 
 class button1(button):
     def __init__(self):
@@ -395,6 +411,7 @@ class button1(button):
         self.img=self.soldier.img
         self.info=False
         self.rect=pygame.Rect(self.x,self.y,self.width, self.height)
+        self.round= 0
 
 
 class button2(button):
@@ -406,6 +423,7 @@ class button2(button):
         self.img=self.soldier.img
         self.info=False
         self.rect=pygame.Rect(self.x,self.y,self.width, self.height)
+        self.round= 1
 
 
 
