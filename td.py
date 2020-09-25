@@ -344,7 +344,7 @@ class grenadier(object):
     def __init__(self, ID, x, y, vel):
         self.width=50
         self.height=50
-        self.img=pygame.image.load(r'image/soldierR.png')
+        self.img=pygame.image.load(r'image/grenadierR.png')
         self.range=180
         self.maxhp=20
         self.hp=self.maxhp
@@ -352,7 +352,7 @@ class grenadier(object):
         self.firerate=3
         self.vel=vel
         super().__init__(ID, x, y, vel)
-        self.imglist=[pygame.image.load(r'image/soldierR.png'), pygame.image.load(r'image/soldierTR.png'),pygame.image.load(r'image/soldierTL.png'), pygame.image.load(r'image/soldierL.png'), pygame.image.load(r'image/soldierBL.png'), pygame.image.load(r'image/soldierBR.png')]
+        self.imglist=[pygame.image.load(r'image/grenadierR.png'), pygame.image.load(r'image/grenadierTR.png'),pygame.image.load(r'image/grenadierTL.png'), pygame.image.load(r'image/grenadierL.png'), pygame.image.load(r'image/grenadierBL.png'), pygame.image.load(r'image/grenadierBR.png')]
         self.cost=2
         self.good=True
         self.type='shortrange'
