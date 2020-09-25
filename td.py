@@ -32,7 +32,7 @@ fighting=False
 
 gold=3
 
-shottimerrange=200
+shottimerrange=400
 
 placing_tile=False
 
@@ -45,6 +45,7 @@ fastspeed=10
 normalspeed=6
 globalspeed= normalspeed ###(adjusts for speed, does not currently function because only affects initialization)
 vel=.5*globalspeed
+
 
 def round25(x):
     rounded=round(x/25)
@@ -158,34 +159,31 @@ class object():
         return colliding
         
     def zombieshottrack(self): ### some redundancy here
-        distlist=[]
-        indexlist=[] ###Could use dictionary
-        self.shooting=False
-        self.right=True
-        self.up=False
-        self.down=False
-        for i in range(zombiecount):
-            a= (self.center[0]-zombielist[i].center[0])**2 + (self.center[1]-zombielist[i].center[1])**2
-            centerdistance=sqrt(a)
-            if centerdistance<=self.range:
-                distlist.append(centerdistance)
-                indexlist.append(i)
-        if len(distlist)>0:
-            if self.shortrange:
-                centerdistance=min(distlist)
-            elif not self.shortrange:
-                centerdistance=max(distlist)
-            closest=[]
-            closest.append(distlist.index(centerdistance))
-            i=indexlist[closest[0]]
-            xdif=self.center[0]-zombielist[i].center[0]
-            if centerdistance<=self.range and fighting: 
-                ###Shooting calculations
-                self.shottimer+=self.firerate
-                if self.shottimer>=shottimerrange: ##Rate of zombie getting hit
-                    self.shooting=True
-                    self.shootingat=zombielist[i].ID
-                    self.shottimer=0
+        if self.type!='terrain' and fighting:
+            self.shooting=False
+            self.right=True
+            self.up=False
+            self.down=False
+            distlist=[]
+            indexlist=[] ###Could use dictionary
+            for i in range(zombiecount):
+                a= (self.center[0]-zombielist[i].center[0])**2 + (self.center[1]-zombielist[i].center[1])**2
+                centerdistance=sqrt(a)
+                if centerdistance<=self.range:
+                    distlist.append(centerdistance)
+                    indexlist.append(i)
+                    if self.type=='areadmg':
+                        print(i)
+            if len(distlist)>0 and self.type!="areadmg":
+                if self.type=='shortrange':
+                    centerdistance=min(distlist)
+                elif self.type=='longrange':
+                    centerdistance=max(distlist)
+                closest=[]
+                closest.append(distlist.index(centerdistance))
+                i=indexlist[closest[0]]
+                xdif=self.center[0]-zombielist[i].center[0]
+                ydif=self.center[1]-zombielist[i].center[1]
                 ###Positions for soldiers
                 if xdif>=0:
                     self.right=False
@@ -194,6 +192,57 @@ class object():
                 if zombielist[i].y>self.y+self.range*.5:
                     self.down=True
 
+                if not self.splash:
+                    ###Shooting calculations
+                    self.shottimer+=self.firerate
+                    if self.shottimer>=shottimerrange: ##Rate of zombie getting hit
+                        self.shooting=True
+                        self.shootingat=zombielist[i].ID
+                        self.shottimer=self.shottimer%shottimerrange
+                
+                if self.splash:
+                    self.shottimer+=self.firerate
+                    traveldist=sqrt(xdif**2+ydif**2)
+                    if self.firerate<10:
+                        if self.shottimer>=shottimerrange*(1-self.firerate/20)-traveldist/self.projectilespeed and self.shottimer<shottimerrange*(1-self.firerate/20)-traveldist/self.projectilespeed+self.firerate:
+                            for i in range(len(self.splashes)):
+                                self.explosions=[]
+                                self.explosions.append(splash((self.center[0]-self.splashes[i]*xdif)-self.splashradius[i]/2, (self.center[1]-self.splashes[i]*ydif)-self.splashradius[i]/2, self.splashradius[i],self.dmg)) ###Make the explosions cntered
+                                self.projectiles=[]
+                                self.projectiles.append(projectile(self.center[0]-self.pwidth/2, self.center[1]-self.pheight/2, self.pwidth, self.pheight, self.projectileimg, self.projectilespeed))
+                        elif self.shottimer>=shottimerrange*(1-self.firerate/20-traveldist/self.projectilespeed) and self.shottimer<shottimerrange*(1-self.firerate/20):
+                            for i in self.projectiles:
+                                i.x-=xdif*(i.vel/traveldist)
+                                i.y-=ydif*(i.vel/traveldist)
+                                i.draw()
+                        elif self.shottimer>=shottimerrange*(1-self.firerate/20) and self.shottimer<shottimerrange*(1-self.firerate/20)+self.firerate:
+                            self.shooting=True
+                            for i in self.explosions:
+                                i.shooting=True
+                                i.zombieshottrack()
+                                print('explode!')
+                            self.projectiles=[]
+                        else:
+                            self.shooting=False
+                            if len(self.explosions)>0:
+                                for i in self.explosions:
+                                    i.shooting=False
+
+                        if self.shottimer>=shottimerrange*(1-self.firerate/20):
+                            for i in self.explosions:
+                                i.draw()
+                    if self.shottimer>=shottimerrange:
+                        self.shottimer=0
+                        self.explosions=[]
+                
+            if self.type=='areadmg':
+                for j in indexlist:
+                    zombielist[j].hp-=self.dmg
+                print('SPLASH')
+
+                    
+
+                    
 ###Classes
 class castle(object):
     def __init__(self, ID, x, y, vel):
@@ -210,7 +259,8 @@ class castle(object):
         self.up=False
         self.down=False
         self.good=True
-
+        self.type='terrain'
+        self.splash=False
 
 class soldier(object):
     def __init__(self, ID, x, y, vel):
@@ -221,13 +271,14 @@ class soldier(object):
         self.maxhp=20
         self.hp=self.maxhp
         self.dmg=2
-        self.firerate=5
+        self.firerate=10
         self.vel=vel
         super().__init__(ID, x, y, vel)
         self.imglist=[pygame.image.load(r'image/soldierR.png'), pygame.image.load(r'image/soldierTR.png'),pygame.image.load(r'image/soldierTL.png'), pygame.image.load(r'image/soldierL.png'), pygame.image.load(r'image/soldierBL.png'), pygame.image.load(r'image/soldierBR.png')]
         self.cost=1
         self.good=True
-        self.shortrange=True
+        self.type='shortrange'
+        self.splash=False
         self.description=''
 
 class wall(object):
@@ -239,7 +290,7 @@ class wall(object):
         for i in range(6):
             self.imglist.append(pygame.image.load(r'image/barbed-wire.png'))
         self.range=0
-        self.maxhp=90
+        self.maxhp=120
         self.hp=self.maxhp
         self.dmg=0
         self.firerate=0
@@ -247,7 +298,8 @@ class wall(object):
         super().__init__(ID, x, y, vel)
         self.cost=2
         self.good=True
-        self.shortrange=True
+        self.type='terrain'
+        self.splash=False
         self.description='Great for tanking zombies'
 
 class machinegun(object):
@@ -260,12 +312,13 @@ class machinegun(object):
         self.maxhp=5
         self.hp=self.maxhp
         self.dmg=1
-        self.firerate=30
+        self.firerate=60
         self.vel=vel
         super().__init__(ID, x, y, vel)
         self.cost=3
         self.good=True
-        self.shortrange=True
+        self.type='shortrange'
+        self.splash=False
         self.description='High Firerate, quite vulnerable'
 
 class sniper(object):
@@ -277,14 +330,68 @@ class sniper(object):
         self.range=320
         self.maxhp=5
         self.hp=self.maxhp
-        self.dmg=50
+        self.dmg=75
         self.firerate=1
         self.vel=vel
         super().__init__(ID, x, y, vel)
         self.cost=2
         self.good=True
-        self.shortrange=False
+        self.type='longrange'
+        self.splash=False
         self.description='Long range damage, quite vulnerable'
+
+class grenadier(object):
+    def __init__(self, ID, x, y, vel):
+        self.width=50
+        self.height=50
+        self.img=pygame.image.load(r'image/soldierR.png')
+        self.range=180
+        self.maxhp=20
+        self.hp=self.maxhp
+        self.dmg=9
+        self.firerate=3
+        self.vel=vel
+        super().__init__(ID, x, y, vel)
+        self.imglist=[pygame.image.load(r'image/soldierR.png'), pygame.image.load(r'image/soldierTR.png'),pygame.image.load(r'image/soldierTL.png'), pygame.image.load(r'image/soldierL.png'), pygame.image.load(r'image/soldierBL.png'), pygame.image.load(r'image/soldierBR.png')]
+        self.cost=2
+        self.good=True
+        self.type='shortrange'
+        self.splash=True
+        self.explosions=[]
+        self.projectiles=[]
+        self.splashes=[1]
+        self.splashradius=[100]
+        self.description='Does damage in an area'
+        ##Projectileinfo
+        self.projectileimg=pygame.image.load(r'image/grenade.png')
+        self.pwidth=25
+        self.pheight=25
+        self.projectileimg=pygame.transform.scale(self.projectileimg, (self.pwidth,self.pheight))
+        self.projectilespeed=5
+
+class projectile(object):
+    def __init__(self, x, y, width, height, img, speed):
+        ID=-1
+        self.width=width
+        self.height=height
+        self.img=pygame.transform.scale(img, (width,height))
+        self.vel=speed
+        super().__init__(ID, x, y, vel)
+
+class splash(object):
+    def __init__(self, x, y, radius, dmg):
+        ID=-1
+        self.dmg=dmg
+        self.vel=0
+        self.radius=radius
+        self.width=self.radius
+        self.height=self.radius
+        self.range=self.radius
+        self.img=pygame.image.load(r'image/explode.png')
+        self.type='areadmg'
+        self.shooting=False      
+        super().__init__(ID, x, y, vel)
+
 
 
 ###ZOMBIES
@@ -298,8 +405,7 @@ class zombie(object):
         self.good=False
         self.xvec=self.spawnlocatedistancex/sqrt((self.spawnlocatedistancex**2)+(self.spawnlocatedistancey**2))
         self.yvec= self.spawnlocatedistancey/sqrt((self.spawnlocatedistancex**2)+(self.spawnlocatedistancey**2))
-
-            
+       
     def zombiemove(self):
         self.center= [round(self.x+self.width/2), round(self.y+self.height/2)]
         movement= True
@@ -319,7 +425,6 @@ class zombie(object):
                 self.x+=.4*self.xvec* self.vel
                 self.y+=.4*self.yvec* self.vel
     
-
     def zombiehealth(self):
         self.gotshot=False
         for j in thinglist:
@@ -327,7 +432,6 @@ class zombie(object):
                 self.gotshot=True
                 self.img= self.imglist[1]
                 self.hp-=j.dmg
-                print(f"hp:{self.ID}={self.hp}")
         if not self.gotshot:
             self.img= self.imglist[0]
 
@@ -346,6 +450,21 @@ class starterzombie(zombie):
         self.vel=vel
         super().__init__(ID, x, y, vel)
 
+class betterzombie(zombie):
+    def __init__(self, ID, x, y, vel, delay):
+        self.width=60
+        self.height=60
+        self.img=pygame.image.load(r'image/zombie.png')
+        self.imglist=[pygame.transform.scale(pygame.image.load(r'image/zombie.png'), (self.width,self.height)), pygame.transform.scale(pygame.image.load(r'image/zombieshot.png'), (self.width,self.height))]
+        self.range=80
+        self.maxhp=20
+        self.hp=self.maxhp
+        self.dmg=6*globalspeed
+        self.delay=delay
+        self.gold=1
+        self.vel=vel
+        super().__init__(ID, x, y, vel)
+
         #self.round?
 
 class zombieimp(zombie):
@@ -354,10 +473,10 @@ class zombieimp(zombie):
         self.height=25
         self.img=pygame.image.load(r'image/babyzombie.png')
         self.imglist=[pygame.transform.scale(pygame.image.load(r'image/babyzombie.png'), (self.width,self.height)), pygame.transform.scale(pygame.image.load(r'image/babyzombieshot.png'), (self.width,self.height))]
-        self.range=40
-        self.maxhp=5
+        self.range=50
+        self.maxhp=7
         self.hp=self.maxhp
-        self.dmg=10*globalspeed
+        self.dmg=20*globalspeed
         self.delay=delay+400
         self.gold=0
         self.vel=vel*2.5 ###Maybe do when initiating?
@@ -369,10 +488,10 @@ class zombietank(zombie):
         self.height=75
         self.img=pygame.image.load(r'image/zombietank.png')
         self.imglist=[pygame.transform.scale(pygame.image.load(r'image/zombietank.png'), (self.width,self.height)), pygame.transform.scale(pygame.image.load(r'image/zombietankshot.png'), (self.width,self.height))]
-        self.range=100
+        self.range=85
         self.maxhp=100
         self.hp=self.maxhp
-        self.dmg=10*globalspeed
+        self.dmg=7*globalspeed
         self.delay=delay
         self.gold=2
         self.vel=vel*.6 ###Maybe do when initiating?
@@ -518,6 +637,17 @@ class button4(button):
         self.rect=pygame.Rect(self.x,self.y,self.width, self.height)
         self.round= 2
 
+class button5(button):
+    def __init__(self):
+        button.__init__(self)
+        self.x=260
+        self.y=820
+        self.soldier=grenadier(number_of_objects, thinglist[0].x, thinglist[0].y, vel)
+        self.img=self.soldier.img
+        self.info=False
+        self.rect=pygame.Rect(self.x,self.y,self.width, self.height)
+        self.round= 3 ##Change this!
+
 
 thinglist=[]
 thinglist.append(castle(-1, x, y, vel))
@@ -563,6 +693,7 @@ def drawscreen():   ##Drawscreen draws the object to the screen
             if i!=0:
                 if fighting:
                     thinglist[i].zombieshottrack()
+                    
                 thinglist[i].drawsoldier() ##Draws all objects that have been created
             if not fighting:
                 thinglist[i].drawhitbox(screen) 
@@ -623,6 +754,8 @@ while running:
                         buttonlist.append(b3)
                         b4=button4()
                         buttonlist.append(b4)
+                        b5=button5()
+                        buttonlist.append(b5)
                         number_of_buttons= len(buttonlist)
                         
                  
@@ -636,7 +769,7 @@ while running:
                     zombielist=[]
                     a=pow(2, phase-1)
                     if phase>=0 and phase<3:
-                        zc=3 + (5*(a))
+                        zc=2 + (5*(a))
                         zombiecount=zc
                         for i in range(zc):
                             zombielist.append(starterzombie(i, random.choice(range(0,950)), 0, vel, random.choice(range(1,400+20*zc))))
@@ -676,6 +809,9 @@ while running:
                             if buttonlist[i]==b4:
                                 b4=button4()
                                 buttonlist[i]=b4 
+                            if buttonlist[i]==b5:
+                                b5=button5()
+                                buttonlist[i]=b5 
                             
                             buttonlist[i].spawnthing()
                                
@@ -708,15 +844,12 @@ while running:
                     break
 
             if len(zombielist)==0:
-                fighting=False
                 placing_tile=False
-
-                ###initialize new buttons here
-                #if phase ==1:
-                    #b2=button2()
-                    #number_of_buttons+=1
-                    #buttonlist.append(b2)
-
+                for i in thinglist:
+                    if i.splash==True:
+                        i.explosions=[]
+                fighting=False
+                
                 break
             for i in range(number_of_objects):
                 if thinglist[i].hp<=.1:
