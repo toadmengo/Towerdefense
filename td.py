@@ -395,7 +395,7 @@ class artillery(object):
         self.innerrange=150
         self.maxhp=2
         self.hp=self.maxhp
-        self.dmg=50
+        self.dmg=35
         self.firerate=1.5##Change!
         self.vel=vel
         super().__init__(ID, x, y, vel)
@@ -405,7 +405,7 @@ class artillery(object):
         self.type='longrange'
         self.splash=True
         self.splashes=[1]
-        self.splashradius=[150]
+        self.splashradius=[180]
         self.description='Does massive damage in an area'
         ##Projectileinfo
         self.projectileimg=pygame.image.load(r'image/grenade.png')
@@ -545,11 +545,25 @@ class zombietank(zombie):
         self.vel=vel*.6 ###Maybe do when initiating?
         super().__init__(ID, x, y, vel)
         
+class zombieimprange(zombie):
+    def __init__(self, ID, x, y, vel, delay):
+        self.width=25
+        self.height=25
+        self.img=pygame.image.load(r'image/zombieimprange.png')
+        self.imglist=[pygame.transform.scale(pygame.image.load(r'image/zombieimprange.png'), (self.width,self.height)), pygame.transform.scale(pygame.image.load(r'image/zombieimprangeshot.png'), (self.width,self.height))]
+        self.range=250
+        self.maxhp=15
+        self.hp=self.maxhp
+        self.dmg=20*globalspeed
+        self.delay=delay+400
+        self.gold=1
+        self.vel=vel*2.5 ###Maybe do when initiating?
+        super().__init__(ID, x, y, vel)
 
 def zombiedead(i):
     global gold
     goldchance= random.choice(range(100))
-    if goldchance>40: ###Goldchance
+    if goldchance>60: ###Goldchance
         gold+=zombielist[i].gold
     del zombielist[i]
     global zombiecount
@@ -832,12 +846,12 @@ while running:
                     phase+=1
                     globaldelay=0 ###Sets a delay count that staggers the spawn of zombies
                     zombielist=[]
-                    a=round(pow(1.7, phase-1))
+                    a=round(pow(1.67, phase-1))
                     if phase>=0 and phase<3:
                         zc=round(7*(a))
                         zombiecount=zc
                         for i in range(zc):
-                            zombielist.append(starterzombie(i, random.choice(range(0,950)), -100, vel, random.choice(range(400+zombiecount))))
+                            zombielist.append(starterzombie(i, random.choice(range(-200,1150)), -100, vel, random.choice(range(400+zombiecount))))
 
 
                     if phase>=3:
@@ -847,12 +861,23 @@ while running:
                         a3=round(zc*.6)
                         zombiecount=a1+a2+a3
                         for i in range(a1):
-                            zombielist.append(starterzombie(i, random.choice(range(0,950)), -100, vel, random.choice(range(400+zombiecount))))
+                            zombielist.append(starterzombie(i, random.choice(range(-200,1150)), -100, vel, random.choice(range(400+zombiecount))))
                         for i in range(a2):
-                            zombielist.append(zombieimp(i+zc, random.choice(range(0,950)), -100, vel, random.choice(range(400+zombiecount))))
+                            zombielist.append(zombieimp(i+zc, random.choice(range(-200,1150)), -100, vel, random.choice(range(400+zombiecount))))
                         for i in range(a3):
-                            zombielist.append(zombietank(i+2*zc, random.choice(range(0,950)), -100, vel, random.choice(range(400+zombiecount))))
-                        
+                            zombielist.append(zombietank(i+2*zc, random.choice(range(-200,1150)), -100, vel, random.choice(range(400+zombiecount))))
+                    if phase>=5:
+                        zc=a-6
+                        a1=round(zc*3)
+                        a2=round(zc*2)
+                        a3=round(zc*.6)
+                        for i in range(a1):
+                            zombielist.append(betterzombie(i, random.choice(range(-200,1150)), -100, vel, random.choice(range(400+zombiecount))))
+                        for i in range(a2):
+                            zombielist.append(zombieimprange(i+zc, random.choice(range(-200,1150)), -100, vel, random.choice(range(400+zombiecount))))
+                        for i in range(a3):
+                            zombielist.append(zombietank(i+2*zc, random.choice(range(-200,1150)), -100, vel, random.choice(range(400+zombiecount))))
+
 
                     fighting=True
                     print(f"zombiecount:{zombiecount}")
