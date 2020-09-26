@@ -549,13 +549,13 @@ class zombieimprange(zombie):
     def __init__(self, ID, x, y, vel, delay):
         self.width=25
         self.height=25
-        self.img=pygame.image.load(r'image/zombieimprange.png')
-        self.imglist=[pygame.transform.scale(pygame.image.load(r'image/zombieimprange.png'), (self.width,self.height)), pygame.transform.scale(pygame.image.load(r'image/zombieimprangeshot.png'), (self.width,self.height))]
+        self.img=pygame.image.load(r'image/zombieimprange.jpg')
+        self.imglist=[pygame.transform.scale(pygame.image.load(r'image/zombieimprange.jpg'), (self.width,self.height)), pygame.transform.scale(pygame.image.load(r'image/zombieimprangeshot.jpg'), (self.width,self.height))]
         self.range=250
         self.maxhp=15
         self.hp=self.maxhp
         self.dmg=20*globalspeed
-        self.delay=delay+400
+        self.delay=delay+500
         self.gold=1
         self.vel=vel*2.5 ###Maybe do when initiating?
         super().__init__(ID, x, y, vel)
@@ -851,7 +851,7 @@ while running:
                         zc=round(7*(a))
                         zombiecount=zc
                         for i in range(zc):
-                            zombielist.append(starterzombie(i, random.choice(range(-200,1150)), -100, vel, random.choice(range(400+zombiecount))))
+                            zombielist.append(standardzombie(i, random.choice(range(-200,1150)), -100, vel, random.choice(range(400+zombiecount))))
 
 
                     if phase>=3:
