@@ -563,7 +563,7 @@ class zombieimprange(zombie):
 def zombiedead(i):
     global gold
     goldchance= random.choice(range(100))
-    if goldchance>60: ###Goldchance
+    if goldchance>50: ###Goldchance
         gold+=zombielist[i].gold
     del zombielist[i]
     global zombiecount
