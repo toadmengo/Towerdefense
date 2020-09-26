@@ -855,7 +855,7 @@ while running:
 
 
                     if phase>=3:
-                        zc=a+6
+                        zc=a+5
                         a1=round(zc*1.7)
                         a2=round(zc*2)
                         a3=round(zc*.6)
