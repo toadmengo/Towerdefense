@@ -855,7 +855,7 @@ while running:
 
 
                     if phase>=3 and phase<5:
-                        zc=a+5
+                        zc=(a+6)/1.5
                         a1=round(zc*1.7)
                         a2=round(zc*2)
                         a3=round(zc*.6)
@@ -870,7 +870,7 @@ while running:
                         zc=a-6
                         a1=round(zc*3)
                         a2=round(zc*2)
-                        a3=round(zc*.6)
+                        a3=round(zc*.33)
                         zombiecount=a1+a2+a3
                         for i in range(a1):
                             zombielist.append(betterzombie(i, random.choice(range(-200,1150)), -100, vel, random.choice(range(400+zombiecount))))
