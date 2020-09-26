@@ -922,6 +922,7 @@ while running:
                 for i in thinglist:
                     if i.splash==True:
                         i.explosions=[]
+                gold+=1
                 fighting=False
                 
                 break
