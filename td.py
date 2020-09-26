@@ -68,6 +68,8 @@ class object():
         self.shootingat=-1
         self.startfiringprocess=False
 
+        self.startmoving=False
+
         self.explosions=[]
         self.projectiles=[]
 
@@ -174,21 +176,17 @@ class object():
             distlist=[]
             indexlist=[] ###Could use dictionary
             for i in range(zombiecount):
-                a= (self.center[0]-zombielist[i].center[0])**2 + (self.center[1]-zombielist[i].center[1])**2
-                centerdistance=sqrt(a)
-                if self.type=='shortrange' or self.type=='areadmg':
-                    if centerdistance<=self.range:
-                        distlist.append(centerdistance)
-                        indexlist.append(i)
-                        if self.type=='areadmg':
-                            print(i)
-                elif self.type=='longrange':
-                    if centerdistance<=self.range and centerdistance>=self.innerrange:
-                        distlist.append(centerdistance)
-                        indexlist.append(i)
-                        if self.type=='areadmg':
-                            print(i)
-
+                if zombielist[i].startmoving:
+                    a= (self.center[0]-zombielist[i].center[0])**2 + (self.center[1]-zombielist[i].center[1])**2
+                    centerdistance=sqrt(a)
+                    if self.type=='shortrange' or self.type=='areadmg':
+                        if centerdistance<=self.range:
+                            distlist.append(centerdistance)
+                            indexlist.append(i)
+                    elif self.type=='longrange':
+                        if centerdistance<=self.range and centerdistance>=self.innerrange:
+                            distlist.append(centerdistance)
+                            indexlist.append(i)
             if self.type!="areadmg" and len(distlist)>0:          
                 if self.type=='shortrange':
                     centerdistance=min(distlist)
@@ -257,14 +255,9 @@ class object():
                     self.explosions=[]
                     self.startfiringprocess=False
                 
-                
-
             if self.type=='areadmg':
                 for j in indexlist:
                     zombielist[j].hp-=self.dmg
-
-
-                    
 
                     
 ###Classes
@@ -374,7 +367,7 @@ class grenadier(object):
         self.maxhp=20
         self.hp=self.maxhp
         self.dmg=9
-        self.firerate=5
+        self.firerate=4
         self.vel=vel
         super().__init__(ID, x, y, vel)
         self.imglist=[pygame.image.load(r'image/grenadierR.png'), pygame.image.load(r'image/grenadierTR.png'),pygame.image.load(r'image/grenadierTL.png'), pygame.image.load(r'image/grenadierL.png'), pygame.image.load(r'image/grenadierBL.png'), pygame.image.load(r'image/grenadierBR.png')]
@@ -390,7 +383,7 @@ class grenadier(object):
         self.pwidth=25
         self.pheight=25
         self.projectileimg=pygame.transform.scale(self.projectileimg, (self.pwidth,self.pheight))
-        self.projectilespeed=7
+        self.projectilespeed=5
         self.pspeed=self.projectilespeed*self.firerate
 
 class artillery(object):
@@ -402,7 +395,7 @@ class artillery(object):
         self.innerrange=150
         self.maxhp=2
         self.hp=self.maxhp
-        self.dmg=100
+        self.dmg=50
         self.firerate=1.5##Change!
         self.vel=vel
         super().__init__(ID, x, y, vel)
@@ -412,14 +405,14 @@ class artillery(object):
         self.type='longrange'
         self.splash=True
         self.splashes=[1]
-        self.splashradius=[220]
+        self.splashradius=[150]
         self.description='Does massive damage in an area'
         ##Projectileinfo
         self.projectileimg=pygame.image.load(r'image/grenade.png')
         self.pwidth=5
         self.pheight=5
         self.projectileimg=pygame.transform.scale(self.projectileimg, (self.pwidth,self.pheight))
-        self.projectilespeed=2.5
+        self.projectilespeed=3
         self.pspeed=self.projectilespeed*self.firerate
 
 class projectile(object):
@@ -447,7 +440,6 @@ class splash(object):
         super().__init__(ID, x, y, vel)
 
 
-
 ###ZOMBIES
 
 class zombie(object):
@@ -465,6 +457,7 @@ class zombie(object):
         movement= True
         distlist=[]
         if globaldelay>=self.delay:
+            self.startmoving=True
             for i in range(number_of_objects):
                 a= (self.center[0]-thinglist[i].center[0])**2 + (self.center[1]-thinglist[i].center[1])**2
                 centerdistance=sqrt(a)
@@ -481,13 +474,14 @@ class zombie(object):
     
     def zombiehealth(self):
         self.gotshot=False
-        for j in thinglist:
-            if j.shooting and j.shootingat==self.ID:
-                self.gotshot=True
-                self.img= self.imglist[1]
-                self.hp-=j.dmg
-        if not self.gotshot:
-            self.img= self.imglist[0]
+        if self.startmoving:
+            for j in thinglist:
+                if j.shooting and j.shootingat==self.ID:
+                    self.gotshot=True
+                    self.img= self.imglist[1]
+                    self.hp-=j.dmg
+            if not self.gotshot:
+                self.img= self.imglist[0]
 
 class starterzombie(zombie):
     def __init__(self, ID, x, y, vel, delay):
@@ -547,7 +541,7 @@ class zombietank(zombie):
         self.hp=self.maxhp
         self.dmg=7*globalspeed
         self.delay=delay
-        self.gold=2
+        self.gold=1
         self.vel=vel*.6 ###Maybe do when initiating?
         super().__init__(ID, x, y, vel)
         
@@ -601,11 +595,15 @@ class button():
         text1=myfont.render(f'DMG: {self.soldier.dmg}', False, (0, 0, 0))
         text2=myfont.render(f'ATKSPD: {self.soldier.firerate}', False, (0, 0, 0))
         text3=myfont.render(f'HP: {self.soldier.hp}', False, (0, 0, 0))
-        text4=myfont.render(f'{self.soldier.description}', False, (0, 0, 0))
-        screen.blit(text1, (20,self.y-250))
-        screen.blit(text2, (20,self.y-200))
-        screen.blit(text3, (20,self.y-150))
-        screen.blit(text4, (20,self.y-80))
+        text4=myfont2.render(f'{self.soldier.description}', False, (0, 0, 0))
+        yinfo=850
+        pygame.draw.rect(screen, (200,160,40), (15,yinfo-250-10, 235, 200),0 )
+        screen.blit(text1, (20,yinfo-250))
+        screen.blit(text2, (20,yinfo-200))
+        screen.blit(text3, (20,yinfo-150))
+        screen.blit(text4, (20,yinfo-100))
+        
+        
 
     def drawfuncbutton(self):
         pygame.draw.rect(screen, self.color,self.rect, 2)
@@ -834,26 +832,26 @@ while running:
                     phase+=1
                     globaldelay=0 ###Sets a delay count that staggers the spawn of zombies
                     zombielist=[]
-                    a=pow(2, phase-1)
+                    a=round(pow(1.7, phase-1))
                     if phase>=0 and phase<3:
-                        zc=3 + (4*(a))
+                        zc=round(7*(a))
                         zombiecount=zc
                         for i in range(zc):
-                            zombielist.append(starterzombie(i, random.choice(range(0,950)), 0, vel, random.choice(range(400+zombiecount))))
+                            zombielist.append(starterzombie(i, random.choice(range(0,950)), -100, vel, random.choice(range(400+zombiecount))))
 
 
                     if phase>=3:
-                        zc=a
-                        a1=round(zc*3)
+                        zc=a+6
+                        a1=round(zc*2)
                         a2=round(zc*3)
                         a3=round(zc*.6)
                         zombiecount=a1+a2+a3
                         for i in range(a1):
-                            zombielist.append(starterzombie(i, random.choice(range(0,950)), 0, vel, random.choice(range(400+zombiecount))))
+                            zombielist.append(starterzombie(i, random.choice(range(0,950)), -100, vel, random.choice(range(400+zombiecount))))
                         for i in range(a2):
-                            zombielist.append(zombieimp(i+zc, random.choice(range(0,950)), 0, vel, random.choice(range(400+zombiecount))))
+                            zombielist.append(zombieimp(i+zc, random.choice(range(0,950)), -100, vel, random.choice(range(400+zombiecount))))
                         for i in range(a3):
-                            zombielist.append(zombietank(i+2*zc, random.choice(range(0,950)), 0, vel, random.choice(range(400+zombiecount))))
+                            zombielist.append(zombietank(i+2*zc, random.choice(range(0,950)), -100, vel, random.choice(range(400+zombiecount))))
                         
 
                     fighting=True
