@@ -851,7 +851,7 @@ while running:
                         zc=round(7*(a))
                         zombiecount=zc
                         for i in range(zc):
-                            zombielist.append(standardzombie(i, random.choice(range(-200,1150)), -100, vel, random.choice(range(400+zombiecount))))
+                            zombielist.append(starterzombie(i, random.choice(range(-200,1150)), -100, vel, random.choice(range(400+zombiecount))))
 
 
                     if phase>=3:
