@@ -555,7 +555,7 @@ class zombieimprange(zombie):
         self.maxhp=15
         self.hp=self.maxhp
         self.dmg=20*globalspeed
-        self.delay=delay+500
+        self.delay=delay+450
         self.gold=1
         self.vel=vel*2.5 ###Maybe do when initiating?
         super().__init__(ID, x, y, vel)
@@ -854,7 +854,7 @@ while running:
                             zombielist.append(starterzombie(i, random.choice(range(-200,1150)), -100, vel, random.choice(range(400+zombiecount))))
 
 
-                    if phase>=3:
+                    if phase>=3 and phase<5:
                         zc=a+5
                         a1=round(zc*1.7)
                         a2=round(zc*2)
@@ -871,6 +871,7 @@ while running:
                         a1=round(zc*3)
                         a2=round(zc*2)
                         a3=round(zc*.6)
+                        zombiecount=a1+a2+a3
                         for i in range(a1):
                             zombielist.append(betterzombie(i, random.choice(range(-200,1150)), -100, vel, random.choice(range(400+zombiecount))))
                         for i in range(a2):
