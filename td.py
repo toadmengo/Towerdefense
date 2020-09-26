@@ -374,7 +374,7 @@ class grenadier(object):
         self.maxhp=20
         self.hp=self.maxhp
         self.dmg=9
-        self.firerate=4
+        self.firerate=5
         self.vel=vel
         super().__init__(ID, x, y, vel)
         self.imglist=[pygame.image.load(r'image/grenadierR.png'), pygame.image.load(r'image/grenadierTR.png'),pygame.image.load(r'image/grenadierTL.png'), pygame.image.load(r'image/grenadierL.png'), pygame.image.load(r'image/grenadierBL.png'), pygame.image.load(r'image/grenadierBR.png')]
@@ -390,7 +390,7 @@ class grenadier(object):
         self.pwidth=25
         self.pheight=25
         self.projectileimg=pygame.transform.scale(self.projectileimg, (self.pwidth,self.pheight))
-        self.projectilespeed=6
+        self.projectilespeed=7
         self.pspeed=self.projectilespeed*self.firerate
 
 class artillery(object):
@@ -844,9 +844,9 @@ while running:
 
                     if phase>=3:
                         zc=a
-                        a1=round(zc*2)
+                        a1=round(zc*3)
                         a2=round(zc*3)
-                        a3=round(zc*.7)
+                        a3=round(zc*.6)
                         zombiecount=a1+a2+a3
                         for i in range(a1):
                             zombielist.append(starterzombie(i, random.choice(range(0,950)), 0, vel, random.choice(range(400+zombiecount))))
