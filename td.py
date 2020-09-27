@@ -746,7 +746,7 @@ def drawscreen():   ##Drawscreen draws the object to the screen
         screen.blit(textsurface,(100, 120))
         textsurface= myfont2.render(f'You will be able to buy soldiers from the shop with gold.', False, (0, 0, 0))
         screen.blit(textsurface,(100, 150))
-        textsurface= myfont2.render(f'After that, you can move the soldier around with WASD and SHIFT', False, (0, 0, 0))
+        textsurface= myfont2.render(f'After that, you can move the soldier around with the mouse and put the tile down', False, (0, 0, 0))
         screen.blit(textsurface,(100, 180))
         textsurface= myfont2.render(f'You can then place the soldier by pressing the place button or pressing SPACE', False, (0, 0, 0))
         screen.blit(textsurface,(100, 210))
