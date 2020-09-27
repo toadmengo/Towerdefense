@@ -80,34 +80,6 @@ class object():
         self.up=False
         self.down=False
         
-        
-        
-    def moveobject(self):  
-
-        pressed_keys = pygame.key.get_pressed()
-        screenlowerbound=300
-
-        if pressed_keys[pygame.K_LSHIFT] or pressed_keys[pygame.K_RSHIFT]: ##Move faster when left shifting!
-            if (pressed_keys[pygame.K_LEFT] or pressed_keys[pygame.K_a]) and self.x>self.vel*2.5:
-                self.x-=self.vel*2.5
-            if (pressed_keys[pygame.K_RIGHT] or pressed_keys[pygame.K_d])and self.x<screenwidth-self.vel*2.5:
-                self.x+=self.vel*2.5
-            if (pressed_keys[pygame.K_UP] or pressed_keys[pygame.K_w])and self.y-self.vel*2.5>screenlowerbound:
-                self.y-=self.vel*2.5
-            if (pressed_keys[pygame.K_DOWN] or pressed_keys[pygame.K_s])and self.y<screenheight-self.height-self.vel*2.5:
-                self.y+=self.vel*2.5
-
-        else:
-            if (pressed_keys[pygame.K_LEFT] or pressed_keys[pygame.K_a]) and self.x>self.vel:
-                self.x-=self.vel
-            if (pressed_keys[pygame.K_RIGHT] or pressed_keys[pygame.K_d]) and self.x<screenwidth-self.width-self.vel:
-                self.x+=self.vel
-            if (pressed_keys[pygame.K_UP] or pressed_keys[pygame.K_w]) and self.y-self.vel*2.5>screenlowerbound:
-                self.y-=self.vel
-            if (pressed_keys[pygame.K_DOWN] or pressed_keys[pygame.K_s]) and self.y<screenheight-self.height-self.vel:
-                self.y+=self.vel
-        self.center= [round(self.x+self.width/2), round(self.y+self.height/2)]
-    
     def moveobjectmouse(self):
         screenlowerbound=300
         print('t')
@@ -949,7 +921,7 @@ while running:
                     placing_tile= False
                     for i in buttonlist:
                         i.info=False
-                        
+
                 if event.type==pygame.MOUSEBUTTONUP and not tiledown and placing_tile:
                     thinglist[number_of_objects-1].changex(round25(thinglist[number_of_objects-1].x))
                     thinglist[number_of_objects-1].changey(round25(thinglist[number_of_objects-1].y))   
