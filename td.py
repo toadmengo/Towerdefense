@@ -732,7 +732,6 @@ class button6(button):
         self.rect=pygame.Rect(self.x,self.y,self.width, self.height)
         self.round= 4##Change
 
-
 thinglist=[]
 thinglist.append(castle(-1, x, y, vel))
 
