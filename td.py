@@ -82,9 +82,7 @@ class object():
         
     def moveobjectmouse(self):
         screenlowerbound=300
-        print('t')
         pos=pygame.mouse.get_pos()
-        print(pos)
         self.x=pos[0]-self.width/2
         self.y=pos[1]-self.height/2
 
@@ -863,7 +861,6 @@ while running:
                  
             if (event.type== pygame.MOUSEBUTTONUP or event.type==pygame.KEYDOWN) and gamestart==True:   
                 pos=pygame.mouse.get_pos()
-                print(pos)
 
                 if (start.clickedon(pos) and event.type== pygame.MOUSEBUTTONUP) and not placing_tile:             
                 #####Zombie creation list
@@ -921,9 +918,9 @@ while running:
                     for i in buttonlist:
                         i.info=False
 
-                if event.type==pygame.MOUSEBUTTONUP and not tiledown and placing_tile:
-                    thinglist[number_of_objects-1].changex(round25(thinglist[number_of_objects-1].x))
-                    thinglist[number_of_objects-1].changey(round25(thinglist[number_of_objects-1].y))   
+                if event.type==pygame.MOUSEBUTTONUP and not tiledown and placing_tile and not collision:
+                    thinglist[number_of_objects-1].x = (round25(thinglist[number_of_objects-1].x))
+                    thinglist[number_of_objects-1].y = (round25(thinglist[number_of_objects-1].y))   
                     tiledown=True  
                     
                 for i in range(len(buttonlist)):    
@@ -972,7 +969,7 @@ while running:
                     dead=True
 
                     fr=int(clock.get_fps())
-                    #print(fr) ##DELETETHIS
+                    #print(fr) prints framerate
                     break
 
             if len(zombielist)==0:
