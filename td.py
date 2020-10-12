@@ -1,12 +1,15 @@
 import pygame
+
+pygame.init() 
+
+import pygame
 import random
 from math import sqrt
 
-pygame.init()
-screen= pygame.display.set_mode((1000,1000))
+screen = pygame.display.set_mode((1000,1000))
+screen.fill((130,125,120))
+pygame.font.init()
 
-pygame.font.init() # you have to call this at the start, 
-                   # if you want to use this module.
 myfont = pygame.font.SysFont('Comic Sans MS', 30)
 myfont2= pygame.font.SysFont('Comic Sans MS', 16)
 
@@ -15,7 +18,6 @@ y=475
   
 screenwidth=1000
 screenheight=800
-screen.fill((130,125,120))
 number_of_objects=0
 number_of_buttons=0
 
@@ -30,7 +32,7 @@ gridon = False
 phase=0 ###phase tells the game what round it's on
 fighting=False
 
-gold=3
+gold=4
 
 shottimerrange=400
 
@@ -49,17 +51,46 @@ vel=.5*globalspeed
 
 pos=[0,0]
 
+thinglist=[]
+zombiecount=0
+
+globaldelay=0
+
+def zombiedead(i):
+    global gold
+    goldchance= random.choice(range(100))
+    if goldchance>50: ###Goldchance
+        gold+=zombielist[i].gold
+    del zombielist[i]
+    global zombiecount
+    zombiecount-=1
+
+def displayintro():
+        textsurface= myfont.render(f'Welcome to Zombiegame by Todd!', False, (0, 0, 0))
+        screen.blit(textsurface,(250, 50))
+        textsurface= myfont2.render(f"You are tasked with defending humanity's last fortress from oncoming zombies", False, (0, 0, 0))
+        screen.blit(textsurface,(100, 120))
+        textsurface= myfont2.render(f'You will be able to buy soldiers from the shop with gold.', False, (0, 0, 0))
+        screen.blit(textsurface,(100, 150))
+        textsurface= myfont2.render(f'After that, you can move the soldier around with the mouse and put the tile down', False, (0, 0, 0))
+        screen.blit(textsurface,(100, 180))
+        textsurface= myfont2.render(f'You can then place the soldier by pressing the place button or pressing SPACE', False, (0, 0, 0))
+        screen.blit(textsurface,(100, 210))
+        textsurface= myfont2.render(f'You can also delete the soldier by pressing the delete button or pressing BACKSPACE', False, (0, 0, 0))
+        screen.blit(textsurface,(100, 240))
+        textsurface= myfont2.render(f'Once you are satisfied, press the start button, and zombies will attack from the top of the screen', False, (0, 0, 0))
+        screen.blit(textsurface,(100, 270))
+        textsurface= myfont.render(f'Good luck! press ENTER to start', False, (0, 0, 0))
+        screen.blit(textsurface,(250, 310))
 
 def round25(x):
     rounded=round(x/25)
     rounded= 25*rounded
     return rounded
- 
+
 class object():
-    def __init__(self, ID, x, y, vel):
+    def __init__(self, ID):
         self.ID=ID
-        self.x=x
-        self.y=y
         self.center= [round(self.x+self.width/2), round(self.y+self.height/2)]
         self.img=pygame.transform.scale(self.img, (self.width,self.height))
         self.surf=self.img
@@ -67,19 +98,50 @@ class object():
 
         ###Shooting calculations
         self.shooting=False
+        shottimerrange=400
         self.shottimer=random.choice(range(1, shottimerrange))
         self.shootingat=-1
         self.startfiringprocess=False
-
         self.startmoving=False
-
         self.explosions=[]
         self.projectiles=[]
 
         self.right=True
         self.up=False
         self.down=False
-        
+    
+    def draw(self):
+        self.surf=self.img
+        screen.blit(self.surf, (self.x,self.y))
+    
+    def drawhpbox(self):
+        if self.maxhp<=40:
+            maxhp=self.maxhp
+        else:
+            maxhp=40
+        hpoutline= (self.center[0]-maxhp-6, self.y-15, maxhp*2+12, round(maxhp/4)+10)
+        if self.hp>=0:
+            hpbox= (self.center[0]-maxhp-6, self.y-15, (maxhp*2+12)*(self.hp/self.maxhp), round(maxhp/4)+10)
+        else:
+            hpbox= (0,0,0,0)
+        if self.good:
+            pygame.draw.rect(screen, (0,150,0), hpbox , 0)
+        else:
+            pygame.draw.rect(screen, (150,0,50), hpbox , 0)
+        pygame.draw.rect(screen, (255,255,255), hpoutline , 3)
+
+    
+class defenseobject(object):
+    def __init__(self, ID):
+        self.x=475
+        self.y=475
+        self.vel=3
+        self.right=True
+        self.up=False
+        self.down=False
+        self.good=True
+        super().__init__(ID)
+
     def moveobjectmouse(self):
         screenlowerbound=300
         pos=pygame.mouse.get_pos()
@@ -96,15 +158,6 @@ class object():
            self.y=screenheight-self.height
 
         self.center= [round(self.x+self.width/2), round(self.y+self.height/2)]
-
-    def changex(self, newx): ##Change the x cord
-        self.x=newx
-    def changey(self, newy): ##Change the y cord
-        self.y=newy
-
-    def draw(self):
-        self.surf=self.img
-        screen.blit(self.surf, (self.x,self.y))
 
     def drawsoldier(self):
         if self.right:
@@ -124,22 +177,6 @@ class object():
         self.surf=self.img           
         screen.blit(self.surf, (self.x,self.y))
 
-    def drawhpbox(self):
-        if self.maxhp<=40:
-            maxhp=self.maxhp
-        else:
-            maxhp=40
-        hpoutline= (self.center[0]-maxhp-6, self.y-15, maxhp*2+12, round(maxhp/4)+10)
-        if self.hp>=0:
-            hpbox= (self.center[0]-maxhp-6, self.y-15, (maxhp*2+12)*(self.hp/self.maxhp), round(maxhp/4)+10)
-        else:
-            hpbox= (0,0,0,0)
-        if self.good:
-            pygame.draw.rect(screen, (0,150,0), hpbox , 0)
-        else:
-            pygame.draw.rect(screen, (150,0,50), hpbox , 0)
-        pygame.draw.rect(screen, (255,255,255), hpoutline , 3)
-
     def drawhitbox(self, screen):
         self.hitbox=(round25(self.x), round25(self.y),self.width,self.height)
         pygame.draw.rect(screen, (255,0,0),self.hitbox, 2)
@@ -148,7 +185,6 @@ class object():
             pygame.draw.circle(screen, (255,0,0), self.center, self.range, 2)
             if self.type=='longrange':
                 pygame.draw.circle(screen, (255,0,0), self.center, self.innerrange, 2)
-
 
     def collisioncheck(self):
         colliding=False
@@ -254,11 +290,10 @@ class object():
             if self.type=='areadmg':
                 for j in indexlist:
                     zombielist[j].hp-=self.dmg
-
                     
 ###Classes
-class castle(object):
-    def __init__(self, ID, x, y, vel):
+class castle(defenseobject):
+    def __init__(self, ID):
         self.width=150
         self.height=150
         self.img=pygame.image.load(r'image/fortress.png')
@@ -266,17 +301,13 @@ class castle(object):
         ###needs range function
         self.maxhp=40
         self.hp=self.maxhp
-        self.vel=vel
-        super().__init__(ID, x, y, vel)
-        self.right=True
-        self.up=False
-        self.down=False
-        self.good=True
+        self.vel=3
+        super().__init__(ID)
         self.type='terrain'
         self.splash=False
 
-class soldier(object):
-    def __init__(self, ID, x, y, vel):
+class soldier(defenseobject):
+    def __init__(self, ID):
         self.width=50
         self.height=50
         self.img=pygame.image.load(r'image/soldierR.png')
@@ -285,8 +316,7 @@ class soldier(object):
         self.hp=self.maxhp
         self.dmg=2
         self.firerate=10
-        self.vel=vel
-        super().__init__(ID, x, y, vel)
+        super().__init__(ID)
         self.imglist=[pygame.image.load(r'image/soldierR.png'), pygame.image.load(r'image/soldierTR.png'),pygame.image.load(r'image/soldierTL.png'), pygame.image.load(r'image/soldierL.png'), pygame.image.load(r'image/soldierBL.png'), pygame.image.load(r'image/soldierBR.png')]
         self.cost=1
         self.good=True
@@ -294,8 +324,8 @@ class soldier(object):
         self.splash=False
         self.description=''
 
-class wall(object):
-    def __init__(self, ID, x, y, vel):
+class wall(defenseobject):
+    def __init__(self, ID):
         self.width=50
         self.height=50
         self.img=pygame.image.load(r'image/barbed-wire.png')
@@ -307,16 +337,15 @@ class wall(object):
         self.hp=self.maxhp
         self.dmg=0
         self.firerate=0
-        self.vel=vel
-        super().__init__(ID, x, y, vel)
+        super().__init__(ID)
         self.cost=2
         self.good=True
         self.type='terrain'
         self.splash=False
         self.description='Great for tanking zombies'
 
-class machinegun(object):
-    def __init__(self, ID, x, y, vel):
+class machinegun(defenseobject):
+    def __init__(self, ID):
         self.width=75
         self.height=75
         self.img=pygame.image.load(r'image/MGR.png')
@@ -326,16 +355,14 @@ class machinegun(object):
         self.hp=self.maxhp
         self.dmg=1
         self.firerate=60
-        self.vel=vel
-        super().__init__(ID, x, y, vel)
+        super().__init__(ID)
         self.cost=3
-        self.good=True
         self.type='shortrange'
         self.splash=False
         self.description='High Firerate, quite vulnerable'
 
-class sniper(object):
-    def __init__(self, ID, x, y, vel):
+class sniper(defenseobject):
+    def __init__(self, ID):
         self.width=50
         self.height=50
         self.img=pygame.image.load(r'image/sniperR.png')
@@ -346,16 +373,14 @@ class sniper(object):
         self.hp=self.maxhp
         self.dmg=75
         self.firerate=1
-        self.vel=vel
-        super().__init__(ID, x, y, vel)
+        super().__init__(ID)
         self.cost=2
-        self.good=True
         self.type='longrange'
         self.splash=False
         self.description='Long range damage, quite vulnerable'
 
-class grenadier(object):
-    def __init__(self, ID, x, y, vel):
+class grenadier(defenseobject):
+    def __init__(self, ID):
         self.width=50
         self.height=50
         self.img=pygame.image.load(r'image/grenadierR.png')
@@ -364,11 +389,9 @@ class grenadier(object):
         self.hp=self.maxhp
         self.dmg=9
         self.firerate=4
-        self.vel=vel
-        super().__init__(ID, x, y, vel)
+        super().__init__(ID)
         self.imglist=[pygame.image.load(r'image/grenadierR.png'), pygame.image.load(r'image/grenadierTR.png'),pygame.image.load(r'image/grenadierTL.png'), pygame.image.load(r'image/grenadierL.png'), pygame.image.load(r'image/grenadierBL.png'), pygame.image.load(r'image/grenadierBR.png')]
         self.cost=4
-        self.good=True
         self.type='shortrange'
         self.splash=True
         self.splashes=[1]
@@ -382,8 +405,8 @@ class grenadier(object):
         self.projectilespeed=5
         self.pspeed=self.projectilespeed*self.firerate
 
-class artillery(object):
-    def __init__(self, ID, x, y, vel):
+class artillery(defenseobject):
+    def __init__(self, ID):
         self.width=100
         self.height=100
         self.img=pygame.image.load(r'image/artilleryR.png')
@@ -393,11 +416,9 @@ class artillery(object):
         self.hp=self.maxhp
         self.dmg=35
         self.firerate=1.5##Change!
-        self.vel=vel
-        super().__init__(ID, x, y, vel)
+        super().__init__(ID)
         self.imglist=[pygame.image.load(r'image/artilleryR.png'), pygame.image.load(r'image/artilleryTR.png'),pygame.image.load(r'image/artilleryTL.png'), pygame.image.load(r'image/artilleryL.png'), pygame.image.load(r'image/artilleryBL.png'), pygame.image.load(r'image/artilleryBR.png')]
         self.cost=8##Change
-        self.good=True
         self.type='longrange'
         self.splash=True
         self.splashes=[1]
@@ -411,16 +432,18 @@ class artillery(object):
         self.projectilespeed=3
         self.pspeed=self.projectilespeed*self.firerate
 
-class projectile(object):
+class projectile(defenseobject):
     def __init__(self, x, y, width, height, img, speed):
         ID=-1
         self.width=width
         self.height=height
         self.img=pygame.transform.scale(img, (width,height))
         self.vel=speed
-        super().__init__(ID, x, y, vel)
+        super().__init__(ID)
+        self.x=x
+        self.y=y
 
-class splash(object):
+class splash(defenseobject):
     def __init__(self, x, y, radius, dmg):
         ID=-1
         self.dmg=dmg
@@ -432,12 +455,18 @@ class splash(object):
         self.img=pygame.image.load(r'image/explode.png')
         self.type='areadmg'
         self.splash=False
-        super().__init__(ID, x, y, vel)
+        super().__init__(ID)
+        self.x=x
+        self.y=y
+        self.center= [round(self.x+self.width/2), round(self.y+self.height/2)]
 
 ###ZOMBIES
 class zombie(object):
-    def __init__(self, ID, x, y, vel):
-        super().__init__(ID, x, y, vel)
+    def __init__(self, ID):
+        self.x=random.choice(range(-200,1150))
+        self.y=-100
+        self.delay=random.choice(range(400+zombiecount))
+        super().__init__(ID)
         self.spawnlocatedistancex=(thinglist[0].center[0]-(self.width/2))-self.x
         self.spawnlocatedistancey=(thinglist[0].center[1]-(self.height/2))-self.y
         self.shot=0
@@ -447,8 +476,8 @@ class zombie(object):
        
     def zombiemove(self):
         self.center= [round(self.x+self.width/2), round(self.y+self.height/2)]
-        movement= True
         distlist=[]
+        movement=True
         if globaldelay>=self.delay:
             self.startmoving=True
             for i in range(number_of_objects):
@@ -477,7 +506,7 @@ class zombie(object):
                 self.img= self.imglist[0]
 
 class starterzombie(zombie):
-    def __init__(self, ID, x, y, vel, delay):
+    def __init__(self, ID):
         self.width=50
         self.height=50
         self.img=pygame.image.load(r'image/zombie.png')
@@ -486,13 +515,12 @@ class starterzombie(zombie):
         self.maxhp=12
         self.hp=self.maxhp
         self.dmg=4.5*globalspeed
-        self.delay=delay
         self.gold=1
-        self.vel=vel
-        super().__init__(ID, x, y, vel)
+        self.vel=3
+        super().__init__(ID)
 
 class betterzombie(zombie):
-    def __init__(self, ID, x, y, vel, delay):
+    def __init__(self, ID):
         self.width=60
         self.height=60
         self.img=pygame.image.load(r'image/zombie.png')
@@ -501,13 +529,12 @@ class betterzombie(zombie):
         self.maxhp=20
         self.hp=self.maxhp
         self.dmg=6*globalspeed
-        self.delay=delay
         self.gold=1
-        self.vel=vel
-        super().__init__(ID, x, y, vel)
+        self.vel=3
+        super().__init__(ID)
 
 class bosszombie(zombie):
-    def __init__(self, ID, x, y, vel, delay):
+    def __init__(self, ID):
         self.width=125
         self.height=125
         self.img=pygame.image.load(r'image/zombie.png')
@@ -516,14 +543,13 @@ class bosszombie(zombie):
         self.maxhp=4000
         self.hp=self.maxhp
         self.dmg=10*globalspeed
-        self.delay=delay
         self.gold=10
-        self.vel=vel*.5
-        super().__init__(ID, x, y, vel)
+        self.vel=1.5
+        super().__init__(ID)
         #self.round?
 
 class zombieimp(zombie):
-    def __init__(self, ID, x, y, vel, delay):
+    def __init__(self, ID):
         self.width=25
         self.height=25
         self.img=pygame.image.load(r'image/babyzombie.png')
@@ -532,13 +558,13 @@ class zombieimp(zombie):
         self.maxhp=7
         self.hp=self.maxhp
         self.dmg=20*globalspeed
-        self.delay=delay+400
         self.gold=0
-        self.vel=vel*2.5 ###Maybe do when initiating?
-        super().__init__(ID, x, y, vel)
+        self.vel=6 ###Maybe do when initiating?
+        super().__init__(ID)
+        self.delay=self.delay+400
         
 class zombietank(zombie):
-    def __init__(self, ID, x, y, vel, delay):
+    def __init__(self, ID):
         self.width=75
         self.height=75
         self.img=pygame.image.load(r'image/zombietank.png')
@@ -547,13 +573,12 @@ class zombietank(zombie):
         self.maxhp=100
         self.hp=self.maxhp
         self.dmg=7*globalspeed
-        self.delay=delay
         self.gold=1
-        self.vel=vel*.8
-        super().__init__(ID, x, y, vel)
+        self.vel=2
+        super().__init__(ID)
         
 class zombieimprange(zombie):
-    def __init__(self, ID, x, y, vel, delay):
+    def __init__(self, ID):
         self.width=25
         self.height=25
         self.img=pygame.image.load(r'image/zombieimprange.jpg')
@@ -562,19 +587,10 @@ class zombieimprange(zombie):
         self.maxhp=15
         self.hp=self.maxhp
         self.dmg=12*globalspeed
-        self.delay=delay+400
         self.gold=1
-        self.vel=vel*2.5 ###Maybe do when initiating?
-        super().__init__(ID, x, y, vel)
-
-def zombiedead(i):
-    global gold
-    goldchance= random.choice(range(100))
-    if goldchance>50: ###Goldchance
-        gold+=zombielist[i].gold
-    del zombielist[i]
-    global zombiecount
-    zombiecount-=1
+        self.vel=12.5 ###Maybe do when initiating?
+        super().__init__(ID)
+        self.delay=self.delay+400
 
 class button():
     def __init__(self):
@@ -668,19 +684,18 @@ class button1(button):
         button.__init__(self)
         self.x=20
         self.y=820
-        self.soldier=soldier(number_of_objects, pos[0], pos[1], vel)
+        self.soldier=soldier(number_of_objects)
         self.img=self.soldier.img
         self.info=False
         self.rect=pygame.Rect(self.x,self.y,self.width, self.height)
         self.round= 0
-
 
 class button2(button):
     def __init__(self):
         button.__init__(self)
         self.x=80
         self.y=820
-        self.soldier=wall(number_of_objects, pos[0], pos[1], vel)
+        self.soldier=wall(number_of_objects)
         self.img=self.soldier.img
         self.info=False
         self.rect=pygame.Rect(self.x,self.y,self.width, self.height)
@@ -691,7 +706,7 @@ class button3(button):
         button.__init__(self)
         self.x=140
         self.y=820
-        self.soldier=machinegun(number_of_objects, pos[0], pos[1], vel)
+        self.soldier=machinegun(number_of_objects)
         self.img=self.soldier.img
         self.info=False
         self.rect=pygame.Rect(self.x,self.y,self.width, self.height)
@@ -702,7 +717,7 @@ class button4(button):
         button.__init__(self)
         self.x=200
         self.y=820
-        self.soldier=sniper(number_of_objects, pos[0], pos[1], vel)
+        self.soldier=sniper(number_of_objects)
         self.img=self.soldier.img
         self.info=False
         self.rect=pygame.Rect(self.x,self.y,self.width, self.height)
@@ -713,7 +728,7 @@ class button5(button):
         button.__init__(self)
         self.x=260
         self.y=820
-        self.soldier=grenadier(number_of_objects, pos[0], pos[1], vel)
+        self.soldier=grenadier(number_of_objects)
         self.img=self.soldier.img
         self.info=False
         self.rect=pygame.Rect(self.x,self.y,self.width, self.height)
@@ -724,35 +739,19 @@ class button6(button):
         button.__init__(self)
         self.x=320
         self.y=820
-        self.soldier=artillery(number_of_objects, pos[0], pos[1], vel)
+        self.soldier=artillery(number_of_objects)
         self.img=self.soldier.img
         self.info=False
         self.rect=pygame.Rect(self.x,self.y,self.width, self.height)
         self.round= 4##Change
 
-thinglist=[]
-thinglist.append(castle(-1, x, y, vel))
+thinglist.append(castle(-1))
 
 def drawscreen():   ##Drawscreen draws the object to the screen
     screen.fill((130,125,120)) ##Screen color
     if not gamestart:
         ###Info text
-        textsurface= myfont.render(f'Welcome to Zombiegame by Todd!', False, (0, 0, 0))
-        screen.blit(textsurface,(250, 50))
-        textsurface= myfont2.render(f"You are tasked with defending humanity's last fortress from oncoming zombies", False, (0, 0, 0))
-        screen.blit(textsurface,(100, 120))
-        textsurface= myfont2.render(f'You will be able to buy soldiers from the shop with gold.', False, (0, 0, 0))
-        screen.blit(textsurface,(100, 150))
-        textsurface= myfont2.render(f'After that, you can move the soldier around with the mouse and put the tile down', False, (0, 0, 0))
-        screen.blit(textsurface,(100, 180))
-        textsurface= myfont2.render(f'You can then place the soldier by pressing the place button or pressing SPACE', False, (0, 0, 0))
-        screen.blit(textsurface,(100, 210))
-        textsurface= myfont2.render(f'You can also delete the soldier by pressing the delete button or pressing BACKSPACE', False, (0, 0, 0))
-        screen.blit(textsurface,(100, 240))
-        textsurface= myfont2.render(f'Once you are satisfied, press the start button, and zombies will attack from the top of the screen', False, (0, 0, 0))
-        screen.blit(textsurface,(100, 270))
-        textsurface= myfont.render(f'Good luck! press ENTER to start', False, (0, 0, 0))
-        screen.blit(textsurface,(250, 310))
+        displayintro()
     if gamestart:
     ###Create grid lines
         if gridon and not fighting:
@@ -807,7 +806,6 @@ def drawscreen():   ##Drawscreen draws the object to the screen
                 
     pygame.display.update()
 
-
 running=True
 while running:
 
@@ -859,10 +857,10 @@ while running:
                         buttonlist.append(b6)
                         number_of_buttons= len(buttonlist)
                  
-            if (event.type== pygame.MOUSEBUTTONUP or event.type==pygame.KEYDOWN) and gamestart==True:   
+            if (event.type==pygame.MOUSEBUTTONUP or event.type==pygame.KEYDOWN) and gamestart==True:   
                 pos=pygame.mouse.get_pos()
 
-                if (start.clickedon(pos) and event.type== pygame.MOUSEBUTTONUP) and not placing_tile:             
+                if (start.clickedon(pos) and event.type==pygame.MOUSEBUTTONUP) and not placing_tile:             
                 #####Zombie creation list
                     phase+=1
                     globaldelay=0 ###Sets a delay count that staggers the spawn of zombies
@@ -873,7 +871,7 @@ while running:
                         zc=round(7*(a))
                         zombiecount=zc
                         for i in range(zc):
-                            zombielist.append(starterzombie(i, random.choice(range(-200,1150)), -100, vel, random.choice(range(400+zombiecount))))
+                            zombielist.append(starterzombie(i))
 
                     if phase>=3 and phase<5:
                         goldgive=2
@@ -883,11 +881,11 @@ while running:
                         a3=round(zc*.6)
                         zombiecount=a1+a2+a3
                         for i in range(a1):
-                            zombielist.append(starterzombie(i, random.choice(range(-200,1150)), -100, vel, random.choice(range(400+zombiecount))))
+                            zombielist.append(starterzombie(i))
                         for i in range(a2):
-                            zombielist.append(zombieimp(i+zc, random.choice(range(-200,1150)), -100, vel, random.choice(range(400+zombiecount))))
+                            zombielist.append(zombieimp(i+zc))
                         for i in range(a3):
-                            zombielist.append(zombietank(i+2*zc, random.choice(range(-200,1150)), -100, vel, random.choice(range(400+zombiecount))))
+                            zombielist.append(zombietank(i+2*zc))
                     if (phase>=5 and phase<7) or (phase>=8):
                         goldgive=3
                         zc=a-6
@@ -896,16 +894,15 @@ while running:
                         a3=round(zc*.33)
                         zombiecount=a1+a2+a3
                         for i in range(a1):
-                            zombielist.append(betterzombie(i, random.choice(range(-200,1150)), -100, vel, random.choice(range(400+zombiecount))))
+                            zombielist.append(betterzombie(i))
                         for i in range(a2):
-                            zombielist.append(zombieimprange(i+zc, random.choice(range(-200,1150)), -100, vel, random.choice(range(400+zombiecount))))
+                            zombielist.append(zombieimprange(i+zc))
                         for i in range(a3):
-                            zombielist.append(zombietank(i+2*zc, random.choice(range(-200,1150)), -100, vel, random.choice(range(400+zombiecount))))
+                            zombielist.append(zombietank(i+2*zc))
 
                         if phase==7:
                             goldgive=4
                             zombielist.append(zombieboss(i, random.choice(range(-200,1150)), -100, vel, 100))
-
 
                     fighting=True
                     print(f"zombiecount:{zombiecount}")
@@ -959,7 +956,7 @@ while running:
         thinglist[number_of_objects-1].moveobjectmouse()
 
     if fighting:
-        globaldelay+=1 ###Staggers entrance of zombies
+        globaldelay+=1
         dead=False
         while fighting:
             dead=False
